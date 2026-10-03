@@ -18,7 +18,7 @@ Rules that only take `message`: `no-raw-throw`, `no-unsafe-error-cast`, `no-raw-
 
 ### no-raw-throw
 
-No options.
+- `looseMatch` (default `false`): drop the word boundary before `throw`, so a glued identifier such as `rethrow new Error(` also matches. Older engines matched that way.
 
 ### no-unsafe-error-cast
 
@@ -70,11 +70,13 @@ The watch list comes from `values`, from `enumDir`, or both. A value in `values`
 
 - `memberAccessOnly` (default `false`): flag only `process.env.X` and `process.env[...]`. By default a bare `process.env` (spread or alias) is flagged too, since it leaks the whole environment.
 - `exemptLayers` (default `[]`): layers whose files are skipped. An undefined layer exempts nothing.
+- `looseMatch` (default `false`): drop the word boundary before `process`, so `myprocess.env` also matches.
 
 ### no-console
 
 - `methods` (default `["log", "warn", "error", "info", "debug"]`): console methods that are flagged. Entries that are not plain word characters are ignored.
 - `layerMethods` (default `{}`): an object mapping a layer name to its own method list. The first defined layer containing the file wins and replaces `methods` for that file.
+- `looseMatch` (default `false`): drop the word boundary before `console`, so `myconsole.log(` also matches.
 
 ### phi-redaction-required
 
@@ -91,6 +93,8 @@ No options.
 ### no-axios
 
 - `allowTypeImports` (default `false`): allow `import type` of axios. Value imports, dynamic imports and `require` stay flagged.
+- `forms` (default `["import", "export-from", "dynamic", "require"]`): which ways of pulling in axios are reported. A shorter list restricts the rule, for example `["import", "export-from", "require"]` skips dynamic `import("axios")`.
+- `multiLineAt` (default `"import"`): for an import that spans lines, report the line of the `import` keyword, or `"from"` for the line of `from "axios"`.
 
 ### no-magic-path
 
@@ -168,6 +172,7 @@ When the config defines a `routes` layer, files in it get a message that says ro
 
 - `modules` (default `["^drizzle-orm(/|$)", "^(postgres|pg)(/|$)"]`): module specifiers a route file must not import. Point it at the project's own database package.
 - `typeImports` (default `"allow"`): `"flag"` also reports type-only imports.
+- `inlineTypeImports` (default `"ignore"`): `"flag"` also reports `import { type Db } from "<db module>"`, where every name is marked `type` inline.
 
 ### no-direct-write-audit-in-routes
 
@@ -201,7 +206,7 @@ Takes `skipLayers`, `dbHandles`, `transactionNames` and `blockStart` with the sa
 
 ## Migrations
 
-The `migrations` section of the config (`dir`, `journal`, `releaseRef`, `baseRef`) is described in [CONFIG.md](CONFIG.md).
+The `migrations` section of the config (`dir`, `journal`, `releaseRef`, `baseRef`) is described in [CONFIG.md](CONFIG.md). When the config names `dir` or `journal` itself and the path does not exist, the rules that read it report that as a violation. A path left at its default is skipped when absent, so a project without migrations is not affected.
 
 ### migration-no-tx-control
 

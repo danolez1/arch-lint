@@ -20,6 +20,9 @@ export interface SourceFile {
 export interface ImportRef {
   source: string;
   line: number;
+  /** Differs from `line` for a multi-line import. */
+  fromLine: number;
+  kind: "import" | "export-from" | "dynamic";
   typeOnly: boolean;
   names: string[];
 }
@@ -74,6 +77,7 @@ export interface ResolvedConfig {
     journal: string;
     releaseRef: string;
     baseRef: string;
+    explicit: { dir: boolean; journal: boolean };
   };
 }
 

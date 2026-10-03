@@ -175,10 +175,52 @@ function migrationFiles(ctx: ProjectContext): string[] {
   return [...found].sort();
 }
 
+function directoryExists(ctx: ProjectContext): boolean {
+  const dir = ctx.config.migrations.dir
+    .replace(/^\.\//, "")
+    .replace(/\/+$/, "");
+  const prefix = dir === "." || dir === "" ? "" : `${dir}/`;
+  try {
+    readdirSync(path.join(ctx.root, prefix));
+    return true;
+  } catch {
+    return ctx.listFiles().some((p) => p.startsWith(prefix));
+  }
+}
+
+function missingDirectory(ctx: ProjectContext, rule: string): Violation[] {
+  const { explicit, dir } = ctx.config.migrations;
+  if (!explicit.dir || directoryExists(ctx)) return [];
+  return [
+    violation(
+      dir,
+      0,
+      rule,
+      `The configured migrations directory "${dir}" does not exist.`
+    ),
+  ];
+}
+
+function missingJournal(ctx: ProjectContext, rule: string): Violation[] {
+  const { explicit, journal } = ctx.config.migrations;
+  if (!explicit.journal || ctx.read(journal) !== null) return [];
+  return [
+    violation(
+      journal,
+      0,
+      rule,
+      `The configured migration journal "${journal}" does not exist.`
+    ),
+  ];
+}
+
 function scanSqlFiles(
   ctx: ProjectContext,
+  rule: string,
   scan: (file: string, sql: string) => Violation[]
 ): Violation[] {
+  const missing = missingDirectory(ctx, rule);
+  if (missing.length > 0) return missing;
   const found = migrationFiles(ctx).flatMap((file) =>
     scan(file, ctx.read(file) ?? "")
   );
@@ -192,7 +234,7 @@ const txControlRule: ProjectRule = {
     "Migrations must not contain top-level BEGIN, COMMIT, ROLLBACK or similar; the migrator wraps each file itself. Option grandfathered lists released file names to skip.",
   check(ctx) {
     const grandfathered = option<string[]>(ctx, "grandfathered", []);
-    return scanSqlFiles(ctx, (file, sql) =>
+    return scanSqlFiles(ctx, TX_CONTROL, (file, sql) =>
       scanTxControl(file, sql, grandfathered)
     );
   },
@@ -203,7 +245,7 @@ const defaultPrivilegesRule: ProjectRule = {
   id: DEFAULT_PRIVILEGES,
   description:
     "ALTER DEFAULT PRIVILEGES in a migration must not name an owner role with FOR ROLE or FOR USER.",
-  check: (ctx) => scanSqlFiles(ctx, scanDefaultPrivileges),
+  check: (ctx) => scanSqlFiles(ctx, DEFAULT_PRIVILEGES, scanDefaultPrivileges),
 };
 
 const journalOrderRule: ProjectRule = {
@@ -215,7 +257,7 @@ const journalOrderRule: ProjectRule = {
     if (!option(ctx, "workingTree", true)) return [];
     const journalPath = ctx.config.migrations.journal;
     const text = ctx.read(journalPath);
-    if (text === null) return [];
+    if (text === null) return missingJournal(ctx, JOURNAL_ORDER);
     const entries = parseJournal(text);
     if (!entries) {
       return [
@@ -250,7 +292,8 @@ export function releasedImmutableRule(
       if (!option(ctx, "workingTree", false)) return [];
       const journalPath = ctx.config.migrations.journal;
       const text = ctx.read(journalPath);
-      const entries = text === null ? null : parseJournal(text);
+      if (text === null) return missingJournal(ctx, RELEASED_IMMUTABLE);
+      const entries = parseJournal(text);
       if (!entries) return [];
       const { baseRef } = ctx.config.migrations;
       const base = readJournal(ctx.root, baseRef, journalPath);

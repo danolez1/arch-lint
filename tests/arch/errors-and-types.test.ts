@@ -1384,3 +1384,12 @@ test("require-export-jsdoc indented declarations are checked like top-level ones
     [2]
   );
 });
+
+test("no-raw-throw looseMatch also matches a glued identifier", async () => {
+  const text = "rethrow new Error('x');\n";
+  assert.equal((await check("no-raw-throw", "src/a.ts", text)).length, 0);
+  const loose = await check("no-raw-throw", "src/a.ts", text, {
+    options: { looseMatch: true },
+  });
+  assert.equal(loose.length, 1);
+});

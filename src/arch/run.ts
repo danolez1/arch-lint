@@ -39,6 +39,22 @@ export interface RunResult {
   scanned: number;
 }
 
+// A project that still configures an older id sees that id in the output, so its CI greps and logs keep matching.
+function reportedId(config: ResolvedConfig, rule: Rule): string {
+  if (config.rules[rule.id]) return rule.id;
+  return rule.aliases?.find((alias) => config.rules[alias]) ?? rule.id;
+}
+
+function rename(
+  violations: Violation[],
+  from: string,
+  to: string
+): Violation[] {
+  return from === to
+    ? violations
+    : violations.map((v) => (v.rule === from ? { ...v, rule: to } : v));
+}
+
 function wanted(rule: Rule, only: string[] | undefined): boolean {
   return (
     !only ||
@@ -60,7 +76,9 @@ export async function runRules(input: RunInput): Promise<RunResult> {
     const ctx = ruleContext(root, config, rule);
     for (const file of files) {
       if (!appliesTo(config, settings, rule.defaultLayer, file.path)) continue;
-      violations.push(...rule.check(file, ctx));
+      violations.push(
+        ...rename(rule.check(file, ctx), rule.id, reportedId(config, rule))
+      );
     }
   }
 
@@ -78,7 +96,12 @@ export async function runRules(input: RunInput): Promise<RunResult> {
     (r): r is ProjectRule => r.kind === "project"
   )) {
     const settings = settingsFor(config, rule);
-    for (const v of await rule.check(projectContext(rule))) {
+    const checked = rename(
+      await rule.check(projectContext(rule)),
+      rule.id,
+      reportedId(config, rule)
+    );
+    for (const v of checked) {
       if (!appliesTo(config, settings, rule.defaultLayer, v.file)) continue;
       violations.push(v);
     }

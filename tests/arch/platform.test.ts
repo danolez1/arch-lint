@@ -46,7 +46,7 @@ test("an older id in the config still configures the rule", async () => {
   });
   assert.deepEqual(
     violations.map((v) => `${v.rule}:${v.line}`),
-    ["no-console:1"]
+    ["no-console-log:1"]
   );
 });
 
@@ -1033,5 +1033,63 @@ test("phi-redaction-required methods option and exempt files", async () => {
       opts
     ),
     0
+  );
+});
+
+test("looseMatch restores the unbounded console, process.env and throw patterns", async () => {
+  const text = "myconsole.log(1);\nconst v = myprocess.env.A;\n";
+  const strict = await check("no-console", "src/a.ts", text);
+  assert.equal(strict.length, 0);
+  const loose = await check("no-console", "src/a.ts", text, {
+    options: { looseMatch: true },
+  });
+  assert.deepEqual(
+    loose.map((v) => v.line),
+    [1]
+  );
+  assert.equal((await check("no-raw-process-env", "src/a.ts", text)).length, 0);
+  const env = await check("no-raw-process-env", "src/a.ts", text, {
+    options: { looseMatch: true },
+  });
+  assert.deepEqual(
+    env.map((v) => v.line),
+    [2]
+  );
+});
+
+test("no-axios forms limit which import styles are reported", async () => {
+  const text = [
+    'import a from "axios";',
+    'export { x } from "axios";',
+    'const b = await import("axios");',
+    'const c = require("axios");',
+  ].join("\n");
+  const all = await check("no-axios", "src/a.ts", text);
+  assert.deepEqual(
+    all.map((v) => v.line),
+    [1, 2, 3, 4]
+  );
+  const legacy = await check("no-axios", "src/a.ts", text, {
+    options: { forms: ["import", "export-from", "require"] },
+  });
+  assert.deepEqual(
+    legacy.map((v) => v.line),
+    [1, 2, 4]
+  );
+});
+
+test("no-axios multiLineAt picks the import line or the from line", async () => {
+  const text = 'import {\n  a,\n  b,\n} from "axios";\n';
+  const atImport = await check("no-axios", "src/a.ts", text);
+  assert.deepEqual(
+    atImport.map((v) => v.line),
+    [1]
+  );
+  const atFrom = await check("no-axios", "src/a.ts", text, {
+    options: { multiLineAt: "from" },
+  });
+  assert.deepEqual(
+    atFrom.map((v) => v.line),
+    [4]
   );
 });

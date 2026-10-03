@@ -4,10 +4,13 @@ import type { Baseline, Comparison, Violation } from "./types";
 
 const key = (rule: string, file: string) => `${rule}::${file}`;
 
-export function countByKey(violations: Violation[]): Baseline {
+export function countByKey(
+  violations: Violation[],
+  canonical: (id: string) => string = (id) => id
+): Baseline {
   const counts: Baseline = {};
   for (const v of violations) {
-    const k = key(v.rule, v.file);
+    const k = key(canonical(v.rule), v.file);
     counts[k] = (counts[k] ?? 0) + 1;
   }
   return counts;
@@ -37,10 +40,11 @@ export function readBaseline(root: string, file: string): Baseline {
 export function writeBaseline(
   root: string,
   file: string,
-  violations: Violation[]
+  violations: Violation[],
+  canonical: (id: string) => string = (id) => id
 ): number {
   const sorted = Object.fromEntries(
-    Object.entries(countByKey(violations)).sort(([a], [b]) =>
+    Object.entries(countByKey(violations, canonical)).sort(([a], [b]) =>
       a.localeCompare(b)
     )
   );
@@ -50,13 +54,14 @@ export function writeBaseline(
 
 export function compareToBaseline(
   violations: Violation[],
-  baseline: Baseline
+  baseline: Baseline,
+  canonical: (id: string) => string = (id) => id
 ): Comparison {
   const seen: Baseline = {};
   const fresh: Violation[] = [];
   let debt = 0;
   for (const v of violations) {
-    const k = key(v.rule, v.file);
+    const k = key(canonical(v.rule), v.file);
     seen[k] = (seen[k] ?? 0) + 1;
     if (seen[k] <= (baseline[k] ?? 0)) debt++;
     else fresh.push(v);

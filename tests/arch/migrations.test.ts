@@ -387,9 +387,14 @@ test("journal order rule: a clean, missing or malformed journal", async () => {
     ),
     []
   );
+  const missing = await checkProject(
+    ORDER,
+    { "a.txt": "x" },
+    { config: nested }
+  );
   assert.deepEqual(
-    await checkProject(ORDER, { "a.txt": "x" }, { config: nested }),
-    []
+    missing.map((x) => [x.file, x.rule, x.line]),
+    [[JOURNAL, ORDER, 0]]
   );
   const bad = await checkProject(
     ORDER,
@@ -481,12 +486,15 @@ test("released rule: an unreadable base ref is skipped with a warning", async ()
   );
 });
 
-test("released rule: a missing working tree journal is skipped without reading git", async () => {
+test("released rule: a missing configured working tree journal is reported without reading git", async () => {
   let calls = 0;
   const { violations } = await runReleased(true, () => (calls++, []), {
     "a.txt": "x",
   });
-  assert.deepEqual(violations, []);
+  assert.deepEqual(
+    violations.map((v) => [v.file, v.rule]),
+    [[JOURNAL, RELEASED]]
+  );
   assert.equal(calls, 0);
 });
 
@@ -821,4 +829,24 @@ test("push check: the message option replaces the wording of that rule only", ()
 test("runJournalCheck keeps the signature index.ts imports", () => {
   assert.equal(typeof runJournalCheck, "function");
   assert.equal(runJournalCheck.length, 2);
+});
+
+test("a journal or directory left at its default is skipped when absent, one named in the config is reported when absent", async () => {
+  assert.deepEqual(await checkProject(ORDER, { "a.txt": "x" }), []);
+  assert.deepEqual(await checkProject(TX, { "a.txt": "x" }), []);
+  const dir = await checkProject(
+    TX,
+    { "a.txt": "x" },
+    { config: { migrations: { dir: "db/migrations" } } }
+  );
+  assert.deepEqual(
+    dir.map((v) => [v.file, v.rule, v.line]),
+    [["db/migrations", TX, 0]]
+  );
+  const present = await checkProject(
+    TX,
+    { "db/migrations/0001.sql": "create table t (id int);\n" },
+    { config: { migrations: { dir: "db/migrations" } } }
+  );
+  assert.deepEqual(present, []);
 });

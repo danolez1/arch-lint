@@ -886,7 +886,7 @@ test("no-hardcoded-attr-text: settings under the old id no-hardcoded-jsx-string 
   const aria = await run({ attributes: ["aria-label"] });
   assert.deepEqual(
     aria.violations.map((x) => `${x.file}:${x.rule}`),
-    ["apps/a.tsx:no-hardcoded-attr-text"]
+    ["apps/a.tsx:no-hardcoded-jsx-string"]
   );
   const none = await run({ attributes: ["placeholder"] });
   assert.equal(none.violations.length, 0);

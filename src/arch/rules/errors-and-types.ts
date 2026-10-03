@@ -26,7 +26,10 @@ const noRawThrow = patternRule({
   description:
     "Throw a project error class instead of a bare `new Error(...)`.",
   defaultLayer: "backend",
-  pattern: /\bthrow\s+new\s+Error\s*\(/,
+  pattern: (ctx) =>
+    option<boolean>(ctx, "looseMatch", false)
+      ? /throw\s+new\s+Error\s*\(/
+      : /\bthrow\s+new\s+Error\s*\(/,
   message:
     "Throw a project-specific error subclass instead of a raw `new Error(...)`",
 });

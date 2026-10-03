@@ -69,6 +69,8 @@ function lineRule(spec: LineSpec): FileRule {
 
 const PROCESS_ENV_ANY = /\bprocess\.env\b/;
 const PROCESS_ENV_MEMBER = /\bprocess\.env[.[]/;
+const PROCESS_ENV_ANY_LOOSE = /process\.env/;
+const PROCESS_ENV_MEMBER_LOOSE = /process\.env[.[]/;
 
 const noRawProcessEnv = lineRule({
   id: "no-raw-process-env",
@@ -80,8 +82,12 @@ const noRawProcessEnv = lineRule({
       return null;
     // A bare `process.env` (spread, alias) leaks the whole environment, so it is flagged unless the project opts out.
     const memberOnly = option<boolean>(ctx, "memberAccessOnly", false);
+    const loose = option<boolean>(ctx, "looseMatch", false);
+    const patterns = loose
+      ? [PROCESS_ENV_ANY_LOOSE, PROCESS_ENV_MEMBER_LOOSE]
+      : [PROCESS_ENV_ANY, PROCESS_ENV_MEMBER];
     return {
-      pattern: memberOnly ? PROCESS_ENV_MEMBER : PROCESS_ENV_ANY,
+      pattern: memberOnly ? patterns[1]! : patterns[0]!,
       message:
         "Read configuration through the validated env helper, not process.env",
     };
@@ -98,11 +104,13 @@ function consoleMethodsFor(file: SourceFile, ctx: RuleContext): string[] {
   return strings(ctx, "methods", CONSOLE_METHODS);
 }
 
-function consolePattern(methods: string[]): RegExp | null {
+function consolePattern(methods: string[], loose = false): RegExp | null {
   const names = methods.filter((m) => /^\w+$/.test(m));
-  return names.length === 0
-    ? null
-    : new RegExp(`\\bconsole\\.(${names.map(escapeRegExp).join("|")})\\s*\\(`);
+  if (names.length === 0) return null;
+  const boundary = loose ? "" : "\\b";
+  return new RegExp(
+    `${boundary}console\\.(${names.map(escapeRegExp).join("|")})\\s*\\(`
+  );
 }
 
 const noConsole = lineRule({
@@ -111,7 +119,10 @@ const noConsole = lineRule({
   description:
     "Console output is replaced by the project logger. Options: methods, layerMethods (layer name to method list, first matching layer wins).",
   matcher(file, ctx) {
-    const pattern = consolePattern(consoleMethodsFor(file, ctx));
+    const pattern = consolePattern(
+      consoleMethodsFor(file, ctx),
+      option<boolean>(ctx, "looseMatch", false)
+    );
     return (
       pattern && {
         pattern,
@@ -172,20 +183,37 @@ const noRawFetchInComponents = patternRule({
 
 const REQUIRE_AXIOS = /\brequire\s*\(\s*["']axios["']\s*\)/;
 
+const AXIOS_FORMS = ["import", "export-from", "dynamic", "require"];
+
 const noAxios: FileRule = {
   kind: "file",
   id: "no-axios",
   description:
-    "axios is not used; the shared HTTP client replaces it. Options: allowTypeImports (default false). Covers import, export from, dynamic import and require.",
+    "axios is not used; the shared HTTP client replaces it. Options: allowTypeImports, forms (import, export-from, dynamic, require), multiLineAt (import or from).",
   check(file, ctx) {
     const allowTypes = option<boolean>(ctx, "allowTypeImports", false);
+    const forms = new Set(strings(ctx, "forms", AXIOS_FORMS));
+    const atFrom = option<string>(ctx, "multiLineAt", "import") === "from";
     const message = messageFor(
       ctx,
       "Use the shared HTTP client instead of axios"
     );
     const found = importsOf(file)
-      .filter((ref) => ref.source === "axios" && !(allowTypes && ref.typeOnly))
-      .map((ref) => violation(file.path, ref.line, "no-axios", message));
+      .filter(
+        (ref) =>
+          ref.source === "axios" &&
+          forms.has(ref.kind) &&
+          !(allowTypes && ref.typeOnly)
+      )
+      .map((ref) =>
+        violation(
+          file.path,
+          atFrom ? ref.fromLine : ref.line,
+          "no-axios",
+          message
+        )
+      );
+    if (!forms.has("require")) return found;
     file.code.split("\n").forEach((line, index) => {
       if (REQUIRE_AXIOS.test(line))
         found.push(violation(file.path, index + 1, "no-axios", message));

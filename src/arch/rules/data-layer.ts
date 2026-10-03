@@ -79,6 +79,7 @@ interface Statement {
   source: string;
   values: string[];
   typeKeyword: boolean;
+  inlineType: boolean;
   startLine: number;
   sourceLine: number;
   index: number;
@@ -93,6 +94,7 @@ function statements(code: string, pattern: RegExp): Statement[] {
       source,
       values: valueSpecifiers(match[2] ?? ""),
       typeKeyword: Boolean(match[1]),
+      inlineType: /\btype\s+\w/.test(match[2] ?? ""),
       startLine: lineAt(code, index),
       sourceLine: lineAt(code, index + match[0].lastIndexOf(source)),
       index,
@@ -223,6 +225,8 @@ const noDbInRoutes: FileRule = {
   check(file, ctx) {
     const modules = compile(option<string[]>(ctx, "modules", DB_MODULES));
     const flagTypes = option<string>(ctx, "typeImports", "allow") === "flag";
+    const flagInline =
+      option<string>(ctx, "inlineTypeImports", "ignore") === "flag";
     const message = messageFor(
       ctx,
       "Route files must not import the database directly. Call a model function instead"
@@ -232,7 +236,12 @@ const noDbInRoutes: FileRule = {
       ...statements(file.code, EXPORT_FROM),
     ]
       .filter((s) => matchesAny(modules, s.source))
-      .filter((s) => flagTypes || (!s.typeKeyword && s.values.length > 0))
+      .filter(
+        (s) =>
+          flagTypes ||
+          (!s.typeKeyword &&
+            (s.values.length > 0 || (flagInline && s.inlineType)))
+      )
       .map((s) =>
         violation(file.path, s.sourceLine, "no-db-in-routes", message)
       );

@@ -2023,3 +2023,13 @@ test("tx-required-multi-write: a catch-all layer checks every file even when the
     0
   );
 });
+
+test("no-db-in-routes inlineTypeImports flags the inline type form on request", async () => {
+  const text = 'import { type Db } from "drizzle-orm";\n';
+  const ignored = await check("no-db-in-routes", "routes/a.ts", text);
+  assert.equal(ignored.length, 0);
+  const flagged = await check("no-db-in-routes", "routes/a.ts", text, {
+    options: { inlineTypeImports: "flag" },
+  });
+  assert.equal(flagged.length, 1);
+});

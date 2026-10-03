@@ -126,6 +126,10 @@ export function resolveConfig(config: Config): ResolvedConfig {
       journal: config.migrations?.journal ?? "drizzle/meta/_journal.json",
       releaseRef: config.migrations?.releaseRef ?? "refs/heads/main",
       baseRef: config.migrations?.baseRef ?? "origin/main",
+      explicit: {
+        dir: config.migrations?.dir !== undefined,
+        journal: config.migrations?.journal !== undefined,
+      },
     },
   };
 }

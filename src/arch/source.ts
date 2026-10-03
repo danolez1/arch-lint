@@ -32,13 +32,13 @@ export function buildSource(path: string, text: string): SourceFile {
 
 // The clause may not cross another import/export keyword, a semicolon or a quote, so an `export const x = 1` cannot pair with a later `from`.
 const IMPORT_STATEMENT =
-  /\b(?:import|export)\s+(type\s+)?((?:(?!\b(?:import|export)\b)[^;'"`])*?)\s+from\s+["']([^"']+)["']/g;
+  /\b(import|export)\s+(type\s+)?((?:(?!\b(?:import|export)\b)[^;'"`])*?)\s+from\s+["']([^"']+)["']/g;
 const DYNAMIC_IMPORT = /\bimport\(\s*["'](@\/[^"']+|[^"'.][^"']*)["']\s*\)/g;
 
 export function importsOf(file: SourceFile): ImportRef[] {
   const refs: ImportRef[] = [];
   for (const match of file.code.matchAll(IMPORT_STATEMENT)) {
-    const clause = match[2] ?? "";
+    const clause = match[3] ?? "";
     const braced = clause.match(/\{([\s\S]*)\}/)?.[1];
     const specs =
       braced
@@ -51,17 +51,24 @@ export function importsOf(file: SourceFile): ImportRef[] {
       .trim();
     const allTypeSpecs =
       specs.length > 0 && !head && specs.every((s) => s.startsWith("type "));
+    const source = match[4] ?? "";
+    const index = match.index ?? 0;
     refs.push({
-      source: match[3] ?? "",
-      line: lineAt(file.code, match.index ?? 0),
-      typeOnly: Boolean(match[1]) || allTypeSpecs,
+      source,
+      line: lineAt(file.code, index),
+      fromLine: lineAt(file.code, index + match[0].lastIndexOf(source)),
+      kind: match[1] === "export" ? "export-from" : "import",
+      typeOnly: Boolean(match[2]) || allTypeSpecs,
       names: [head, ...specs].filter(Boolean),
     });
   }
   for (const match of file.code.matchAll(DYNAMIC_IMPORT)) {
+    const line = lineAt(file.code, match.index ?? 0);
     refs.push({
       source: match[1] ?? "",
-      line: lineAt(file.code, match.index ?? 0),
+      line,
+      fromLine: line,
+      kind: "dynamic",
       typeOnly: false,
       names: [],
     });

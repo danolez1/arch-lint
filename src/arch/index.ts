@@ -72,7 +72,12 @@ async function main(): Promise<number> {
   });
 
   if (args.updateBaseline) {
-    const entries = writeBaseline(args.root, config.baseline, violations);
+    const entries = writeBaseline(
+      args.root,
+      config.baseline,
+      violations,
+      canonicalId
+    );
     process.stdout.write(
       `Baseline written: ${violations.length} violation(s) across ${entries} file/rule pair(s).\n`
     );
@@ -84,7 +89,7 @@ async function main(): Promise<number> {
     canonicalId
   );
   return report(
-    compareToBaseline(violations, baseline),
+    compareToBaseline(violations, baseline, canonicalId),
     violations.length,
     args.all ? violations : null,
     scanned

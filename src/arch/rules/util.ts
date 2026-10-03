@@ -31,7 +31,7 @@ export interface PatternSpec {
   description: string;
   defaultLayer?: string;
   defaultLevel?: FileRule["defaultLevel"];
-  pattern: RegExp;
+  pattern: RegExp | ((ctx: RuleContext) => RegExp);
   message: string;
   appliesTo?: (file: SourceFile, ctx: RuleContext) => boolean;
   /** Skip import and export-from lines. */
@@ -49,12 +49,14 @@ export function patternRule(spec: PatternSpec): FileRule {
     check(file, ctx) {
       if (spec.appliesTo && !spec.appliesTo(file, ctx)) return [];
       const message = messageFor(ctx, spec.message);
+      const pattern =
+        typeof spec.pattern === "function" ? spec.pattern(ctx) : spec.pattern;
       const found: Violation[] = [];
       file.lines.forEach((line, index) => {
         if (isCommentLine(line)) return;
         if (spec.skipImports && /^\s*(import|export)\s.*from\s/.test(line))
           return;
-        if (spec.pattern.test(line))
+        if (pattern.test(line))
           found.push(violation(file.path, index + 1, spec.id, message));
       });
       return found;
