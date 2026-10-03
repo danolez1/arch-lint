@@ -4,6 +4,14 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # The bundled configs depend on plugins that still pin these majors.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
