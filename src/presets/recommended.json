@@ -1,0 +1,13 @@
+{
+  "defaultLevel": "off",
+  "scan": ["."],
+  "rules": {
+    "no-any": "error",
+    "no-empty-catch": "error",
+    "no-narration-comments": "error",
+    "no-console": {
+      "level": "error",
+      "options": { "methods": ["log", "warn", "info", "debug"] }
+    }
+  }
+}
