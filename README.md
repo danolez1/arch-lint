@@ -25,25 +25,31 @@ The package is not published yet. Until it is, install it from a tarball (`npm p
 
 ## Commands
 
-| Command                      | What it does                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `arch-lint lint [paths]`     | ESLint. Extra flags pass straight through (`--fix`, `--max-warnings 0`).                               |
-| `arch-lint format [paths]`   | Prettier `--check`.                                                                                    |
-| `arch-lint format:write`     | Prettier `--write`.                                                                                    |
-| `arch-lint fix`              | `lint --fix`, then `format:write`.                                                                     |
-| `arch-lint arch`             | The architecture rules. `--rule a,b`, `--all`, `--update-baseline`, `--journal`, `--list`, `--config`. |
-| `arch-lint check`            | `lint`, `format` and `arch` in sequence. `--skip-arch` leaves the rules out.                           |
-| `arch-lint codeflow analyze` | Headless CodeFlow: analysis, full report, blast radii, churn hotspots. Writes into `.codeflow/`.       |
-| `arch-lint codeflow verify`  | Re-checks CodeFlow's dead code and structure findings against the files on disk.                       |
-| `arch-lint codeflow audit`   | Turns an analysis and its verdicts into a written audit.                                               |
-| `arch-lint init [--force]`   | Adds the scripts above and an `arch-lint.config.json`.                                                 |
+| Command                      | What it does                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `arch-lint lint [paths]`     | ESLint, plus `ruff check` and mypy in Python projects. Extra flags pass to ESLint (`--fix`, `--max-warnings 0`). |
+| `arch-lint format [paths]`   | Prettier `--check`, plus `ruff format --check`.                                                                  |
+| `arch-lint format:write`     | Prettier `--write`, plus `ruff format`.                                                                          |
+| `arch-lint fix`              | `lint --fix`, then `format:write`.                                                                               |
+| `arch-lint arch`             | The architecture rules. `--rule a,b`, `--all`, `--update-baseline`, `--journal`, `--list`, `--config`.           |
+| `arch-lint check`            | `lint`, `format` and `arch` in sequence. `--skip-arch` leaves the rules out.                                     |
+| `arch-lint codeflow analyze` | Headless CodeFlow: analysis, full report, blast radii, churn hotspots. Writes into `.codeflow/`.                 |
+| `arch-lint codeflow verify`  | Re-checks CodeFlow's dead code and structure findings against the files on disk.                                 |
+| `arch-lint codeflow audit`   | Turns an analysis and its verdicts into a written audit.                                                         |
+| `arch-lint init [--force]`   | Adds the scripts above and an `arch-lint.config.json`.                                                           |
 
 `--cwd <dir>` runs any command against another project directory.
+
+`--no-python` leaves Python out of `lint`, `format`, `format:write`, `fix` and `check`.
+`--python-only` runs only the Python tools in those same commands.
+
+Python projects (a `ruff.toml`, or a `pyproject.toml` with `[tool.ruff` or `[tool.mypy`) are found by scanning the tree. ruff and mypy are not bundled, since they come from Python: they are used from `.venv/bin`, `PATH` or `uv`, and a missing one fails the command unless `"python": { "required": false }` is set, which skips it with a message. See [docs/LANGUAGES.md](docs/LANGUAGES.md).
 
 ## Configuration
 
 - ESLint: a project `eslint.config.*` (this directory or a parent) is used as is. Otherwise the bundled config applies. It detects `next` in `package.json` and switches to `eslint-config-next`, and adds the React hooks rules when `react` is a dependency.
 - Prettier: a project config (`.prettierrc*`, `prettier.config.*`, a `prettier` key; this directory or a parent) wins. Without one the bundled config applies (double quotes, semicolons, width 80, ES5 trailing commas, organize-imports).
+- Biome: a project with a `biome.json` (or `biome.jsonc`) gets that file mapped onto the bundled configs, whether it uses them directly or wraps `createConfig` in its own config (`biome: false` opts out): formatter options become Prettier options, rule levels and overrides become ESLint rules and blocks, and ignore patterns reach both. Settings with no equivalent are printed once to stderr. See [docs/BIOME.md](docs/BIOME.md).
 - Architecture rules: `arch-lint.config.json`. See [docs/CONFIG.md](docs/CONFIG.md) for the format, [docs/RULES.md](docs/RULES.md) for the 59 rules and [docs/RULE-OPTIONS.md](docs/RULE-OPTIONS.md) for their options.
 - To extend the bundled lint configs from your own files:
 
@@ -66,7 +72,7 @@ src/                     everything that runs
   configs/ presets/            bundled ESLint and Prettier configs, rule presets
   arch/                        the architecture rule engine: runner, config, 59 rules
   codeflow/                    headless CodeFlow: analyzer core, headless/ (analyze, report, hotspots, verify, audit)
-docs/                    CONFIG, RULES, RULE-OPTIONS, ARCHITECTURE, WRITING-RULES
+docs/                    CONFIG, RULES, RULE-OPTIONS, ARCHITECTURE, WRITING-RULES, LANGUAGES, BIOME
 tests/                   CLI, rule and CodeFlow tests
 ```
 
@@ -74,7 +80,7 @@ tests/                   CLI, rule and CodeFlow tests
 
 Early. The architecture rules come from several separate projects and were merged into the one engine in `src/arch/`. The merged rules are tested against the original test suites, but a few behaviors were tightened on purpose (comment lines starting with `/*` or `*` are skipped, some patterns gained word boundaries); see the rule source for details.
 
-Only JavaScript and TypeScript are linted for now (plus Dart for the mobile rules). CodeFlow itself reads many more languages.
+JavaScript and TypeScript are linted with ESLint and Prettier, Python with ruff and mypy, and Dart is covered by the mobile rules only. CodeFlow itself reads many more languages. See [docs/LANGUAGES.md](docs/LANGUAGES.md).
 
 ## Development
 

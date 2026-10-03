@@ -25,17 +25,18 @@ The architecture rules read `arch-lint.config.json` in the project root. Without
 
 ## Fields
 
-| Field          | Meaning                                                                                                                                                    |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `extends`      | Configs merged underneath this one, in order. `preset:<name>` is a built-in from `src/presets/`, anything else is a path relative to the file.             |
-| `scan`         | Directories, files or globs to read. Default `["."]`. Dangling symlinks are skipped.                                                                       |
-| `ignore`       | Extra path patterns to skip. `node_modules`, `.git`, `.next`, `.turbo`, `.codeflow`, `dist`, `build` and `coverage` are always skipped.                    |
-| `tests`        | Patterns that mark test files, which source rules skip. Default: `tests/` and `test/` directories, `*.test.*`, `*.spec.*`.                                 |
-| `layers`       | Named groups of path patterns. Rules can be limited to a layer. A layer name the config never defines matches every path.                                  |
-| `defaultLevel` | Level for rules the config does not list. `"off"` runs only the rules you list.                                                                            |
-| `rules`        | Per rule: a level (`"error"` or `"off"`) or an object with `level`, `layer`, `include`, `exempt`, `options`.                                               |
-| `baseline`     | File of tolerated violation counts per rule and file. Default `arch-lint.baseline.json`.                                                                   |
-| `migrations`   | `dir`, `journal`, `releaseRef` and `baseRef` for the migration rules. Defaults: `drizzle`, `drizzle/meta/_journal.json`, `refs/heads/main`, `origin/main`. |
+| Field          | Meaning                                                                                                                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `extends`      | Configs merged underneath this one, in order. `preset:<name>` is a built-in from `src/presets/`, anything else is a path relative to the file.                                                |
+| `scan`         | Directories, files or globs to read. Default `["."]`. Dangling symlinks are skipped.                                                                                                          |
+| `ignore`       | Extra path patterns to skip. `node_modules`, `.git`, `.next`, `.turbo`, `.codeflow`, `dist`, `build` and `coverage` are always skipped.                                                       |
+| `tests`        | Patterns that mark test files, which source rules skip. Default: `tests/` and `test/` directories, `*.test.*`, `*.spec.*`.                                                                    |
+| `layers`       | Named groups of path patterns. Rules can be limited to a layer. A layer name the config never defines matches every path.                                                                     |
+| `defaultLevel` | Level for rules the config does not list. `"off"` runs only the rules you list.                                                                                                               |
+| `rules`        | Per rule: a level (`"error"` or `"off"`) or an object with `level`, `layer`, `include`, `exempt`, `options`.                                                                                  |
+| `baseline`     | File of tolerated violation counts per rule and file. Default `arch-lint.baseline.json`.                                                                                                      |
+| `python`       | A missing ruff or mypy fails `lint`, `format`, `format:write`, `fix` and `check` with exit code 1. `{ "required": false }` skips it with a message instead. See [LANGUAGES.md](LANGUAGES.md). |
+| `migrations`   | `dir`, `journal`, `releaseRef` and `baseRef` for the migration rules. Defaults: `drizzle`, `drizzle/meta/_journal.json`, `refs/heads/main`, `origin/main`.                                    |
 
 Path patterns: `dir/` matches everything below `dir`, a plain path matches that file, and `*`, `?`, `**` and `{a,b}` work as globs.
 
