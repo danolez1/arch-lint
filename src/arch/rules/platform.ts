@@ -139,7 +139,8 @@ const phiRedactionRequired = lineRule({
   defaultLayer: "clinical",
   matcher(_file, ctx) {
     const pattern = consolePattern(
-      strings(ctx, "methods", [...CONSOLE_METHODS, "trace"])
+      strings(ctx, "methods", [...CONSOLE_METHODS, "trace"]),
+      option<boolean>(ctx, "looseMatch", false)
     );
     return (
       pattern && {

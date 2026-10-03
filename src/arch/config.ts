@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { matchesAny } from "./paths";
+import { matchesAny, matchesPattern } from "./paths";
 import type {
   Config,
   Level,
@@ -166,7 +166,8 @@ export function inLayer(
 
 export function isExempt(settings: RuleSettings, file: string): boolean {
   return (
-    (settings.exempt?.files?.includes(file) ?? false) ||
+    (settings.exempt?.files?.some((entry) => matchesPattern(file, entry)) ??
+      false) ||
     (settings.exempt?.dirs?.some((dir) => file.startsWith(dir)) ?? false)
   );
 }

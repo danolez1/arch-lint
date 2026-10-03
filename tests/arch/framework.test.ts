@@ -142,3 +142,13 @@ test("an explicit config path that does not exist is an error", () => {
     /Config file not found/
   );
 });
+
+test("exempt.files accepts globs as well as exact paths", async () => {
+  const exempt = await run({
+    rules: { "no-demo": { exempt: { files: ["services/a/src/leg*.ts"] } } },
+  });
+  assert.deepEqual(
+    exempt.violations.map((v) => v.file),
+    ["services/a/src/x.ts"]
+  );
+});

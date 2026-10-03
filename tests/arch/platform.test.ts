@@ -1093,3 +1093,15 @@ test("no-axios multiLineAt picks the import line or the from line", async () => 
     [4]
   );
 });
+
+test("phi-redaction-required honors looseMatch", async () => {
+  const text = "myconsole.log(1);\n";
+  assert.equal(
+    (await check("phi-redaction-required", "svc/a.ts", text)).length,
+    0
+  );
+  const loose = await check("phi-redaction-required", "svc/a.ts", text, {
+    options: { looseMatch: true },
+  });
+  assert.equal(loose.length, 1);
+});
