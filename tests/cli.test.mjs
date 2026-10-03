@@ -391,3 +391,27 @@ test("check runs the architecture rules even without a config file", async () =>
     }
   );
 });
+
+test("arch reports the older rule id a config uses and baselines match either id", async () => {
+  await withProject(
+    {
+      "arch-lint.config.json": JSON.stringify({
+        scan: ["src"],
+        defaultLevel: "off",
+        rules: { "no-console-log": "error" },
+      }),
+      "src/a.ts": "console.log(1);\n",
+    },
+    async (dir) => {
+      const first = await arch(dir, "arch");
+      assert.equal(first.code, 1);
+      assert.match(first.stdout, /^no-console-log \(1\)/m);
+      assert.equal((await arch(dir, "arch", "--update-baseline")).code, 0);
+      const baseline = JSON.parse(
+        await readFile(path.join(dir, "arch-lint.baseline.json"), "utf8")
+      );
+      assert.deepEqual(Object.keys(baseline), ["no-console::src/a.ts"]);
+      assert.equal((await arch(dir, "arch")).code, 0);
+    }
+  );
+});

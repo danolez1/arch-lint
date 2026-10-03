@@ -82,6 +82,25 @@ export function hasPrettierConfig(root) {
   );
 }
 
+const OPTED_OUT = /\bbiome\s*:\s*false\b/;
+
+// A config that imports the bundled factory gets biome.json mapped inside createConfig, so the CLI reports and applies the rest like it does for the bundled config.
+export function wrapsBundledConfig(root, tool) {
+  const specifier = `arch-lint/${tool}`;
+  const mentions = (text) => text.includes(specifier) && !OPTED_OUT.test(text);
+  const names = tool === "eslint" ? ESLINT_CONFIGS : PRETTIER_CONFIGS;
+  return upwardsFrom(
+    root,
+    (dir) =>
+      names.some((name) => {
+        const file = path.join(dir, name);
+        return existsSync(file) && mentions(readFileSync(file, "utf8"));
+      }) ||
+      (tool === "prettier" &&
+        mentions(JSON.stringify(readProjectPackage(dir)?.prettier ?? "")))
+  );
+}
+
 // Flags that consume the next token, so their values are not mistaken for paths.
 export const ESLINT_VALUE_FLAGS = new Set([
   "-c",

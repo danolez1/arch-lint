@@ -6,6 +6,7 @@ import { codeflow } from "./commands/codeflow.mjs";
 import { format } from "./commands/format.mjs";
 import { init } from "./commands/init.mjs";
 import { lint } from "./commands/lint.mjs";
+import { PYTHON_FLAGS } from "./commands/python.mjs";
 import {
   ESLINT_VALUE_FLAGS,
   PKG_ROOT,
@@ -18,9 +19,9 @@ const HELP = `arch-lint: ESLint, Prettier, architecture rules and CodeFlow in on
 Usage: arch-lint [--cwd <dir>] <command> [args]
 
 Commands:
-  lint [paths] [eslint flags]   ESLint with the bundled config (or your eslint.config.*)
-  format [paths]                Prettier check
-  format:write [paths]          Prettier write
+  lint [paths] [eslint flags]   ESLint with the bundled config (or your eslint.config.*), ruff and mypy for Python projects
+  format [paths]                Prettier check, ruff format --check
+  format:write [paths]          Prettier write, ruff format
   fix                           lint --fix, then format:write
   arch [--list|--all|--rule id]  Architecture rules (config: arch-lint.config.json)
   check [--skip-arch]           lint + format + arch, one exit code for CI
@@ -29,6 +30,7 @@ Commands:
 
 Options:
   --cwd <dir>                   Run against another project directory
+  --no-python, --python-only    With lint, format, format:write, fix, check: leave Python out, or run only Python
   -h, --help                    Show this help
   -v, --version                 Show the version
 `;
@@ -83,10 +85,13 @@ export async function main(argv) {
       );
     case "fix": {
       const linted = await lint(["--fix", ...args], ctx);
-      const formatted = await format(positionals(args, ESLINT_VALUE_FLAGS), {
-        ...ctx,
-        write: true,
-      });
+      const formatted = await format(
+        [
+          ...args.filter((a) => PYTHON_FLAGS.includes(a)),
+          ...positionals(args, ESLINT_VALUE_FLAGS),
+        ],
+        { ...ctx, write: true }
+      );
       return linted || formatted;
     }
     case "arch":
