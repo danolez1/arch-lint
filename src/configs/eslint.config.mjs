@@ -4,6 +4,7 @@ import globals from "globals";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import tseslint from "typescript-eslint";
+import { loadBiomeCompat } from "./biome-compat.mjs";
 
 export const DEFAULT_IGNORES = [
   "**/node_modules/**",
@@ -44,14 +45,27 @@ async function loadNextConfig() {
   }
 }
 
+// A project config that wraps this still gets biome.json, because that project formats and lints with Biome; `biome: false` opts out.
 export async function createConfig({
   root = process.cwd(),
   ignores = [],
   rules = {},
+  biome = "auto",
 } = {}) {
   const deps = readDeps(root);
   const nextConfig = deps.has("next") ? await loadNextConfig() : null;
-  const base = [{ ignores: [...DEFAULT_IGNORES, ...ignores] }];
+  const compat = biome === false ? null : loadBiomeCompat(root);
+  const base = [
+    {
+      ignores: [
+        ...new Set([
+          ...DEFAULT_IGNORES,
+          ...(compat?.eslint.ignores ?? []),
+          ...ignores,
+        ]),
+      ],
+    },
+  ];
 
   if (nextConfig) {
     // eslint-config-next already registers the TypeScript, React and hooks plugins, so they are not added again.
@@ -88,6 +102,8 @@ export async function createConfig({
     }
   }
 
+  if (compat)
+    base.push({ rules: compat.eslint.rules }, ...compat.eslint.overrides);
   base.push({ rules });
   return base;
 }

@@ -1,0 +1,41 @@
+// A config written by hand, with the comments and trailing commas Biome allows.
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
+  /* gitignored files are skipped */
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true, },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        "noConsole": { "level": "error", "options": { "allow": ["error", "warn"] } },
+        "noDoubleEquals": "warn", // null comparisons stay allowed
+      },
+      "correctness": { "noUnusedVariables": "warn", },
+    },
+  },
+  "formatter": { "indentStyle": "tab", "indentWidth": 4, "lineWidth": 120, "expand": "never" },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "single",
+      "quoteProperties": "preserve",
+      "trailingCommas": "none",
+      "semicolons": "asNeeded",
+      "arrowParentheses": "asNeeded",
+      "bracketSpacing": false,
+      "bracketSameLine": true,
+      "attributePosition": "multiline",
+      "operatorLinebreak": "before",
+    },
+  },
+  "files": { "includes": ["**", "!**/generated", "!**/*.snap"], },
+  "overrides": [
+    {
+      "includes": ["scripts/**", "!scripts/keep/**"],
+      "linter": { "enabled": false },
+    },
+    {
+      "includes": ["legacy"],
+      "formatter": { "enabled": false },
+    },
+  ],
+}
