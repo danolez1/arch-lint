@@ -1,0 +1,78 @@
+{
+  "name": "arch-lint",
+  "version": "0.1.0",
+  "description": "One install for ESLint, Prettier, architecture lint rules and CodeFlow analysis.",
+  "author": "Fatunmbi Daniel",
+  "license": "MIT",
+  "homepage": "https://github.com/danolez1/arch-lint#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danolez1/arch-lint.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danolez1/arch-lint/issues"
+  },
+  "keywords": [
+    "lint",
+    "eslint",
+    "prettier",
+    "architecture",
+    "codeflow",
+    "static-analysis"
+  ],
+  "type": "module",
+  "bin": {
+    "arch-lint": "./src/bin.mjs"
+  },
+  "exports": {
+    "./eslint": "./src/configs/eslint.config.mjs",
+    "./prettier": "./src/configs/prettier.config.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "lint": "node src/bin.mjs lint",
+    "lint:fix": "node src/bin.mjs lint --fix",
+    "format": "node src/bin.mjs format",
+    "format:write": "node src/bin.mjs format:write",
+    "check": "node src/bin.mjs check --skip-arch",
+    "test": "node --import tsx --test tests/*.test.mjs tests/arch/*.test.ts tests/codeflow/*.test.mjs && npm run test:perf",
+    "test:codeflow": "node --test tests/codeflow/*.test.mjs tests/codeflow-headless.test.mjs tests/perf/*.test.mjs",
+    "test:arch": "node --import tsx --test tests/arch/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "docs:rules": "tsx scripts/generate-rules-doc.ts",
+    "test:perf": "node --test tests/perf/*.test.mjs"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0"
+  },
+  "peerDependencies": {
+    "next": ">=15"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3"
+  }
+}
