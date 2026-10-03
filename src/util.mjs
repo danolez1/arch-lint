@@ -54,6 +54,27 @@ const PRETTIER_CONFIGS = [
   ].flatMap((ext) => [`.prettierrc.${ext}`, `prettier.config.${ext}`]),
 ];
 
+export function readProjectConfig(root) {
+  const file = path.join(root, "arch-lint.config.json");
+  if (!existsSync(file)) return {};
+  try {
+    const parsed = JSON.parse(readFileSync(file, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (err) {
+    throw new UsageError(`Cannot read ${file}: ${err.message}`);
+  }
+}
+
+export function detectLockfiles(root) {
+  const has = (...names) =>
+    names.some((name) => existsSync(path.join(root, name)));
+  return {
+    npm: has("package-lock.json"),
+    pnpm: has("pnpm-lock.yaml"),
+    bun: has("bun.lock", "bun.lockb"),
+  };
+}
+
 export function readProjectPackage(root) {
   const file = path.join(root, "package.json");
   return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : null;

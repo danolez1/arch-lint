@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { UsageError } from "../util.mjs";
+import { writeWorkflow } from "./ci.mjs";
+import { hooks, installFlagsFrom } from "./hooks.mjs";
 
 const SCRIPTS = {
   lint: "arch-lint lint",
@@ -14,6 +16,8 @@ const SCRIPTS = {
 
 export async function init(argv, { root }) {
   const force = argv.includes("--force");
+  // Checked before anything is written, so a bad hooks flag leaves the project untouched.
+  const hookFlags = argv.includes("--hooks") ? installFlagsFrom(argv) : null;
   const file = path.join(root, "package.json");
   if (!existsSync(file)) throw new UsageError(`No package.json in ${root}`);
 
@@ -45,5 +49,10 @@ export async function init(argv, { root }) {
       `scripts kept (use --force to overwrite): ${kept.join(", ")}\n`
     );
   }
-  return 0;
+
+  const ci = argv.includes("--ci") ? writeWorkflow({ root, force }) : 0;
+  const installed = hookFlags
+    ? await hooks(["install", ...hookFlags], { root })
+    : 0;
+  return ci || installed;
 }

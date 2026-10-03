@@ -3,10 +3,13 @@ import path from "node:path";
 import { arch } from "./commands/arch.mjs";
 import { check } from "./commands/check.mjs";
 import { codeflow } from "./commands/codeflow.mjs";
+import { commitMsg } from "./commands/commit-msg.mjs";
 import { format } from "./commands/format.mjs";
+import { hooks } from "./commands/hooks.mjs";
 import { init } from "./commands/init.mjs";
 import { lint } from "./commands/lint.mjs";
 import { PYTHON_FLAGS } from "./commands/python.mjs";
+import { staged } from "./commands/staged.mjs";
 import {
   ESLINT_VALUE_FLAGS,
   PKG_ROOT,
@@ -26,7 +29,10 @@ Commands:
   arch [--list|--all|--rule id]  Architecture rules (config: arch-lint.config.json)
   check [--skip-arch]           lint + format + arch, one exit code for CI
   codeflow [analyze|verify|audit|test]  Headless CodeFlow: analysis, report, hotspots, finding checks
-  init [--force]                Add scripts and arch-lint.config.json to this project
+  staged [--fix] [--no-arch] [--allow-partial]  Check the staged files with lint and format, then the architecture rules
+  commit-msg <file>             Check a commit message (conventional commits), for the commit-msg hook
+  hooks install|status          Write or inspect the git hooks (--husky, --dir, --force, --runner)
+  init [--force] [--ci] [--hooks]  Add scripts and arch-lint.config.json; --ci writes a workflow, --hooks installs git hooks
 
 Options:
   --cwd <dir>                   Run against another project directory
@@ -100,6 +106,12 @@ export async function main(argv) {
       return check(args, ctx);
     case "codeflow":
       return codeflow(args, ctx);
+    case "staged":
+      return staged(args, ctx);
+    case "commit-msg":
+      return commitMsg(args, ctx);
+    case "hooks":
+      return hooks(args, ctx);
     case "init":
       return init(args, ctx);
     default:

@@ -8,7 +8,7 @@ import {
   statSync,
 } from "node:fs";
 import path from "node:path";
-import { UsageError, run } from "../util.mjs";
+import { UsageError, readProjectConfig, run } from "../util.mjs";
 
 export const PYTHON_FLAGS = ["--no-python", "--python-only"];
 
@@ -212,15 +212,8 @@ export function resolveTool(tool, dir) {
   return null;
 }
 
-function pythonRequired(root) {
-  const file = path.join(root, "arch-lint.config.json");
-  if (!existsSync(file)) return true;
-  try {
-    return JSON.parse(readFileSync(file, "utf8"))?.python?.required !== false;
-  } catch (err) {
-    throw new UsageError(`Cannot read ${file}: ${err.message}`);
-  }
-}
+const pythonRequired = (root) =>
+  readProjectConfig(root).python?.required !== false;
 
 const PYTHON_FILE = /\.pyi?$/;
 
