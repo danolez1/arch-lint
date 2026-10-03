@@ -44,3 +44,7 @@ Each rule reads its options from the config through `option(ctx, "name", fallbac
 `arch-lint lint` and `arch-lint format` run the ESLint and Prettier that ship with the package. If the project has its own configuration (this directory or any parent), that is used and the bundled one is not. Otherwise the bundled configs in `src/configs/` apply. When the project has a `biome.json`, whether it uses the bundled configs or wraps `createConfig` in its own, `src/configs/biome-compat.mjs` reads it and both bundled configs derive their options, rules and ignores from it; see [BIOME.md](BIOME.md).
 
 Python projects are handled by `src/commands/python.mjs`. `lint`, `format` and `fix` call it after the JavaScript tools. It finds the project roots from their config files, resolves ruff and mypy per root, and runs them with the root as the working directory. See [LANGUAGES.md](LANGUAGES.md).
+
+## Git workflow
+
+`src/commands/staged.mjs` lists the staged files through `src/git.mjs` and calls the same `lint`, `format` and `arch` functions the other commands use, so routing by file type stays in one place. `commit-msg.mjs` is a pure check of a message file against the `commit` config. `hooks.mjs` generates the three hook scripts from the project's config and compares them with what is on disk, and `ci.mjs` builds the workflow file. The `hooks`, `commit` and `migrations` sections they read come from the project's own `arch-lint.config.json` through `readProjectConfig` in `src/util.mjs`, not through `extends`. See [HOOKS.md](HOOKS.md).
