@@ -52,6 +52,14 @@ The repo lints and formats itself with its own CLI, so a failing `npm run lint` 
 
 Small commits with a short imperative subject (`fix: skip dangling symlinks`, `feat: add no-foo rule`). Explain the reason in the body when it is not obvious.
 
+## Stability
+
+While the version is 0.x, a rule id, an option name or a config key is never removed. A rename keeps the old name working as an alias (as `no-console-log` does for `no-console`), and the changelog says so. `tests/arch/stable-ids.test.ts` lists every released id and alias and fails if one disappears, so a removal has to be a deliberate edit to that list. New options and rules can be added in any release, and a change in what a rule reports goes under Changed in the changelog.
+
+## Updating CodeFlow
+
+The analyzer core in `src/codeflow/core.js` is lifted from the upstream CodeFlow project. To take a newer upstream, check it out next to this repository and run `node scripts/sync-codeflow.mjs --from <path to the checkout>`. The script rewrites `core.js` (minus the browser worker code that nothing here calls), records the upstream commit in the file header, warns when the upstream license text differs, and runs the CodeFlow tests. `--check` only compares. Do not edit `core.js` by hand. The files in `src/codeflow/lib/` are this project's own and are not synced.
+
 ## Releasing
 
 Releases are cut by a maintainer. `npm run release:check` is the gate: it checks the working tree, runs typecheck, lint, format and all tests, inspects what `npm pack` would ship, scans tracked files for the banned phrase, dashes, home paths and secrets, confirms the version is unpublished, and installs a packed tarball from a clean export under npm (and bun when present). `prepublishOnly` runs it again. A `.release-denylist` file (git-ignored, one regular expression per line) adds private names to the scan. Tag the release as `vX.Y.Z`. The publish workflow checks the tag against `package.json`, runs every check in one job, and publishes from a second job that runs no repository code (`--ignore-scripts`) and is the only one allowed to request the publishing token. Add required reviewers to the `npm-publish` environment in the repository settings to hold each release for approval.

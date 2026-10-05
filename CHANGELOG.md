@@ -6,6 +6,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Added
 
+- `scripts/sync-codeflow.mjs` to re-lift the analyzer core from an upstream CodeFlow checkout, and a test that fails when a released rule id or alias disappears.
 - `arch-lint` CLI with `lint`, `format`, `format:write`, `fix`, `arch`, `check`, `codeflow` and `init`.
 - Bundled ESLint 9 and Prettier 3 setups that defer to a project's own config when it has one.
 - Architecture rule engine with 59 rules, layers, per-rule exemptions and options, a baseline for tolerated debt, and rule presets.

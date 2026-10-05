@@ -95,7 +95,7 @@ tests/                   CLI, rule and CodeFlow tests
 
 ## Status
 
-Early. The architecture rules come from several separate projects and were merged into the one engine in `src/arch/`. The merged rules are tested against the original test suites, but a few behaviors were tightened on purpose (comment lines starting with `/*` or `*` are skipped, some patterns gained word boundaries), and options restore the older matching where it matters; see [docs/RULE-OPTIONS.md](docs/RULE-OPTIONS.md).
+Early. The architecture rules come from several separate projects and were merged into the one engine in `src/arch/`. The merged rules are tested against the original test suites, but a few behaviors were tightened on purpose (comment lines starting with `/*` or `*` are skipped, some patterns gained word boundaries), and options restore the older matching where it matters; see [docs/RULE-OPTIONS.md](docs/RULE-OPTIONS.md). Until 1.0, rule ids, option names and config keys are not removed; a rename keeps the old name as an alias.
 
 Tested on macOS and Linux with Node 20, 22 and 24. On `windows-latest` (Node 22) typecheck, lint and format pass, and 683 of the 744 tests pass; the failures are in the git hooks and Python tests, whose generated scripts and test stand-ins assume `sh`, plus three tests around Biome and path handling. Treat Windows as unsupported for now, and expect the hooks to need Git for Windows' `sh`. Reports from Windows users are welcome.
 
