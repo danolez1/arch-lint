@@ -54,7 +54,7 @@ Small commits with a short imperative subject (`fix: skip dangling symlinks`, `f
 
 ## Releasing
 
-Releases are cut by a maintainer. `npm run release:check` is the gate: it checks the working tree, runs typecheck, lint, format and all tests, inspects what `npm pack` would ship, scans tracked files for the banned phrase, dashes, home paths and secrets, confirms the version is unpublished, and installs a packed tarball from a clean export under npm (and bun when present). `prepublishOnly` runs it again. A `.release-denylist` file (git-ignored, one regular expression per line) adds private names to the scan. Tag the release as `vX.Y.Z`; the publish workflow checks the tag against `package.json`.
+Releases are cut by a maintainer. `npm run release:check` is the gate: it checks the working tree, runs typecheck, lint, format and all tests, inspects what `npm pack` would ship, scans tracked files for the banned phrase, dashes, home paths and secrets, confirms the version is unpublished, and installs a packed tarball from a clean export under npm (and bun when present). `prepublishOnly` runs it again. A `.release-denylist` file (git-ignored, one regular expression per line) adds private names to the scan. Tag the release as `vX.Y.Z`. The publish workflow checks the tag against `package.json`, runs every check in one job, and publishes from a second job that runs no repository code (`--ignore-scripts`) and is the only one allowed to request the publishing token. Add required reviewers to the `npm-publish` environment in the repository settings to hold each release for approval.
 
 ## Reporting bugs
 
