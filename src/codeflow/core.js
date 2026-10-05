@@ -1,3 +1,4 @@
+// Lifted from upstream CodeFlow (f9b9963, 2026-09-28) by scripts/sync-codeflow.mjs. Change upstream and sync, do not edit by hand.
 // ===== CODEFLOW_ANALYZER_START =====
 const Parser={
     // Tree-sitter parsers are loaded lazily from vendored WASM and used when a language has
