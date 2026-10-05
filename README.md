@@ -23,8 +23,6 @@ bun run codeflow          # headless CodeFlow analysis into .codeflow/
 
 ESLint, Prettier, typescript-eslint, the React hooks plugin, `eslint-config-next` and the organize-imports Prettier plugin ship as dependencies of this package. Nothing else needs installing. Node 20.9 or newer is enough, Bun is not required.
 
-The package is not published yet. Until it is, install it from a tarball (`npm pack`) or a path.
-
 ### Installing with pnpm
 
 pnpm 11 stops with `ERR_PNPM_IGNORED_BUILDS` (and exits 1 on every later `pnpm install`) when a dependency has an install script the project has not approved. Two of this package's dependencies have one, `esbuild` and `unrs-resolver`. Neither script is needed, because the platform binaries come as separate packages, so tell pnpm to skip them in `pnpm-workspace.yaml`:

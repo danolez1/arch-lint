@@ -4,6 +4,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-05
+
 ### Added
 
 - `scripts/sync-codeflow.mjs` to re-lift the analyzer core from an upstream CodeFlow checkout, and a test that fails when a released rule id or alias disappears.
