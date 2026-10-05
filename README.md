@@ -23,6 +23,18 @@ ESLint, Prettier, typescript-eslint, the React hooks plugin, `eslint-config-next
 
 The package is not published yet. Until it is, install it from a tarball (`npm pack`) or a path.
 
+### Installing with pnpm
+
+pnpm 11 stops with `ERR_PNPM_IGNORED_BUILDS` (and exits 1 on every later `pnpm install`) when a dependency has an install script the project has not approved. Two of this package's dependencies have one, `esbuild` and `unrs-resolver`. Neither script is needed, because the platform binaries come as separate packages, so tell pnpm to skip them in `pnpm-workspace.yaml`:
+
+```yaml
+allowBuilds:
+  esbuild: false
+  unrs-resolver: false
+```
+
+Checked with pnpm 11.6.0: `lint`, `format`, the architecture rules and `check` all work with both scripts off. `pnpm add --ignore-scripts` also avoids the error. Other pnpm versions are untested. npm and Bun only print a notice and exit 0.
+
 ## Commands
 
 | Command                       | What it does                                                                                                                                                                    |

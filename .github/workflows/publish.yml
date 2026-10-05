@@ -21,10 +21,8 @@ jobs:
       - name: Tag matches package.json
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run format
-      - run: npm test
+      # The publish job skips scripts, so the release gate that prepublishOnly would run has to happen here.
+      - run: npm run release:check
 
   publish:
     needs: verify
