@@ -5,3 +5,5 @@ node_modules/
 .DS_Store
 # Local-only working material that must never be committed.
 reference/
+# Local list of private names the release check must not find in tracked files.
+.release-denylist

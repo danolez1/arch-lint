@@ -52,6 +52,10 @@ The repo lints and formats itself with its own CLI, so a failing `npm run lint` 
 
 Small commits with a short imperative subject (`fix: skip dangling symlinks`, `feat: add no-foo rule`). Explain the reason in the body when it is not obvious.
 
+## Releasing
+
+Releases are cut by a maintainer. `npm run release:check` is the gate: it checks the working tree, runs typecheck, lint, format and all tests, inspects what `npm pack` would ship, scans tracked files for the banned phrase, dashes, home paths and secrets, confirms the version is unpublished, and installs a packed tarball from a clean export under npm (and bun when present). `prepublishOnly` runs it again. A `.release-denylist` file (git-ignored, one regular expression per line) adds private names to the scan. Tag the release as `vX.Y.Z`; the publish workflow checks the tag against `package.json`.
+
 ## Reporting bugs
 
 Use the bug report template. The most useful report has the command you ran, your `arch-lint.config.json` (trimmed), the output, and the smallest file that reproduces it.

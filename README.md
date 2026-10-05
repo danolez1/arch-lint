@@ -83,9 +83,11 @@ tests/                   CLI, rule and CodeFlow tests
 
 ## Status
 
-Early. The architecture rules come from several separate projects and were merged into the one engine in `src/arch/`. The merged rules are tested against the original test suites, but a few behaviors were tightened on purpose (comment lines starting with `/*` or `*` are skipped, some patterns gained word boundaries); see the rule source for details.
+Early. The architecture rules come from several separate projects and were merged into the one engine in `src/arch/`. The merged rules are tested against the original test suites, but a few behaviors were tightened on purpose (comment lines starting with `/*` or `*` are skipped, some patterns gained word boundaries), and options restore the older matching where it matters; see [docs/RULE-OPTIONS.md](docs/RULE-OPTIONS.md).
 
-JavaScript and TypeScript are linted with ESLint and Prettier, Python with ruff and mypy, and Dart is covered by the mobile rules only. CodeFlow itself reads many more languages. See [docs/LANGUAGES.md](docs/LANGUAGES.md).
+Tested on macOS and Linux with Node 20, 22 and 24. Windows has not been tested: the generated git hooks are `sh` scripts (Git for Windows provides `sh`), and the Python tool lookup only knows Unix virtualenv paths. Reports from Windows users are welcome.
+
+Linted languages: JavaScript, TypeScript and the other formats Prettier supports through ESLint and Prettier, Python through ruff and mypy, and Dart through the architecture rules only. CodeFlow itself reads many more languages. See [docs/LANGUAGES.md](docs/LANGUAGES.md).
 
 ## Development
 

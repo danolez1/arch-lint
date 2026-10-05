@@ -50,7 +50,12 @@
     "test:arch": "node --import tsx --test tests/arch/*.test.ts",
     "typecheck": "tsc --noEmit",
     "docs:rules": "tsx scripts/generate-rules-doc.ts && node src/bin.mjs format:write docs/RULES.md",
-    "test:perf": "node --test tests/perf/*.test.mjs"
+    "test:perf": "node --test tests/perf/*.test.mjs",
+    "release:check": "node scripts/release-check.mjs",
+    "prepublishOnly": "node scripts/release-check.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@eslint/js": "^9.39.5",

@@ -1,0 +1,31 @@
+# Not yet run: needs GitHub Actions to be available and this repository registered as a trusted
+# publisher for the package on npmjs.com. Until then the first release is published by hand.
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or newer; the npm bundled with Node 24 may be older.
+      - run: npm install -g npm@^11.5.1
+      - name: Tag matches package.json
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format
+      - run: npm test
+      - run: npm publish --provenance --access public

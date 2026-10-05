@@ -10,11 +10,18 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    # Windows is reported but does not block: the hook scripts and Python tool lookup were written for Unix first.
+    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         node: [20, 22, 24]
+        include:
+          - os: windows-latest
+            node: 22
+            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v7
