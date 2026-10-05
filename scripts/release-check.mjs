@@ -19,14 +19,7 @@ const results = [];
 // Built from char codes so this file itself carries no en or em dash.
 const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
 // A dry run of the publish must not turn the nested pack and install into no-ops.
-// Escape codes from a color-forcing shell variable would also break the output the tests match.
-const nestedEnv = {
-  ...process.env,
-  npm_config_dry_run: "false",
-  FORCE_COLOR: "0",
-};
-delete nestedEnv.NO_COLOR;
-delete nestedEnv.CLICOLOR_FORCE;
+const nestedEnv = { ...process.env, npm_config_dry_run: "false" };
 
 function run(cmd, args, options = {}) {
   return spawnSync(cmd, args, {
