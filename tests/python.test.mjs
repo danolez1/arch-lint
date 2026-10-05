@@ -15,6 +15,7 @@ import test, { after } from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { detectPythonProjects } from "../src/commands/python.mjs";
+import "./no-color.mjs";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");

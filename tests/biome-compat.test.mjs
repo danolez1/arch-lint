@@ -21,6 +21,7 @@ import {
 } from "../src/configs/biome-compat.mjs";
 import { createConfig as createEslintConfig } from "../src/configs/eslint.config.mjs";
 import { createConfig as createPrettierConfig } from "../src/configs/prettier.config.mjs";
+import "./no-color.mjs";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
