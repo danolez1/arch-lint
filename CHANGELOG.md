@@ -18,3 +18,4 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - `commit-msg` ignores everything from the scissors line that `git commit -v` adds, and treats `#` as a comment only when whitespace follows it, so `#123 fix: x` is content.
 - `hooks status` exits 1 when a hook is missing, differs or is not executable, or when git is not reading the hooks directory.
 - A value flag followed by another flag (for example `hooks install --dir --force`) is a usage error, and `init --hooks` forwards `--husky`, `--dir`, `--runner` and `--force` to the installer.
+- The pre-push hook tells an empty remote (no release ref yet) from a failed fetch with `git ls-remote --exit-code`: the first push of `main` is no longer blocked, the journal order check still runs and the released-migration comparison is skipped (`arch --journal --base-absent`), and a failed fetch with no local base ref now says so instead of claiming a last fetched copy.

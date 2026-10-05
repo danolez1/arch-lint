@@ -102,6 +102,7 @@ arch-lint arch --rule no-any,no-raw-throw
 arch-lint arch --all                # also show baselined debt per rule
 arch-lint arch --update-baseline    # record current violations as tolerated
 arch-lint arch --journal            # pre-push migration journal check (reads git's pre-push stdin)
+arch-lint arch --journal --base-absent  # the same for a remote with no release ref yet, skipping the released comparison
 arch-lint arch --list               # every rule
 arch-lint arch --config other.json  # a config file, relative to --cwd
 arch-lint staged [--fix] [--no-arch] [--allow-partial]  # lint and format the staged files, then the rules

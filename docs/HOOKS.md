@@ -9,11 +9,11 @@ npx arch-lint init --ci          # writes .github/workflows/arch-lint.yml
 
 ## What each hook runs
 
-| Hook         | Steps, in order                                                                                                                                                                                                                    |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-commit` | `arch-lint staged`, then each command in `hooks.preCommit`.                                                                                                                                                                        |
-| `pre-push`   | Read git's ref lines into `$refs`. When `migrations.dir` or `migrations.journal` is set: fetch the base ref, then `arch-lint arch --journal` with the refs piped in. Then `arch-lint check`, then each command in `hooks.prePush`. |
-| `commit-msg` | `arch-lint commit-msg "$1"`.                                                                                                                                                                                                       |
+| Hook         | Steps, in order                                                                                                                                                                                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pre-commit` | `arch-lint staged`, then each command in `hooks.preCommit`.                                                                                                                                                                                                                          |
+| `pre-push`   | Read git's ref lines into `$refs`. When `migrations.dir` or `migrations.journal` is set: fetch the base ref (an empty remote adds `--base-absent`, see below), then `arch-lint arch --journal` with the refs piped in. Then `arch-lint check`, then each command in `hooks.prePush`. |
+| `commit-msg` | `arch-lint commit-msg "$1"`.                                                                                                                                                                                                                                                         |
 
 Every hook is a `#!/bin/sh` script with `set -e`, mode 755.
 
@@ -51,7 +51,21 @@ A file that is staged but no longer in the working tree (for example you staged 
 git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main
 ```
 
-The refspec follows `migrations.baseRef` (default `origin/main`, which gives the remote and the tracking branch) and `migrations.releaseRef` (default `refs/heads/main`, the branch on the remote). If the fetch fails, for example offline, the hook prints a note to stderr and carries on with the last fetched copy. The refs then go to `arch-lint arch --journal`.
+The refspec follows `migrations.baseRef` (default `origin/main`, which gives the remote and the tracking branch) and `migrations.releaseRef` (default `refs/heads/main`, the branch on the remote). If the fetch fails, for example offline, the hook prints a note to stderr and carries on with the last fetched copy. If the fetch fails and the base ref does not exist locally either, the note says `pre-push: could not fetch origin and origin/main does not exist locally`, and the journal check then blocks with its usual "fetch it and push again" message. The refs then go to `arch-lint arch --journal`.
+
+#### The first push to an empty remote
+
+A remote that has no release ref yet (a fresh repository, before `main` exists) cannot be fetched from, and there is nothing released to protect. After a failed fetch the hook asks the remote directly:
+
+```sh
+git ls-remote --exit-code --heads origin refs/heads/main
+```
+
+Exit code 2 means the remote answered and the ref is absent. The hook then prints `pre-push: origin has no refs/heads/main yet, so there is no released migration history to compare with` and runs the journal check with `--base-absent`. Any other failure (network, authentication, a bad URL) is treated as an offline fetch, as described above.
+
+With `--base-absent` the check still verifies the pushed journal's order (`idx` and `when` strictly increasing) and blocks on violations. It skips the released-migration comparison, because there is no base to compare with. If you set `requireBaseAlways: true` for `migration-released-immutable`, the push is blocked instead, with a message saying the remote has no release ref yet. Turn the option off for the first push, or use `--no-verify`.
+
+`--base-absent` is only meaningful together with `--journal`. The hook adds it by itself, so you rarely type it.
 
 The `migrations` section is read from the project's own `arch-lint.config.json`, like `hooks` and `commit`.
 
@@ -115,8 +129,20 @@ set -e
 # git sends the ref lines once on stdin, so read them before another step can consume them.
 refs=$(cat)
 # Offline pushes still run the other checks; the migration check then reads the last fetched copy.
-git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main || echo "pre-push: fetch failed, using the last fetched origin/main" >&2
-printf '%s\n' "$refs" | pnpm exec arch-lint arch --journal
+base_flag=
+if ! git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main; then
+  # Exit code 2 means the remote answered without the release ref, so nothing has been released to protect yet.
+  git ls-remote --exit-code --heads origin refs/heads/main >/dev/null 2>&1 && ls_status=0 || ls_status=$?
+  if [ "$ls_status" = 2 ]; then
+    echo "pre-push: origin has no refs/heads/main yet, so there is no released migration history to compare with" >&2
+    base_flag=--base-absent
+  elif git rev-parse --verify --quiet refs/remotes/origin/main >/dev/null; then
+    echo "pre-push: fetch failed, using the last fetched origin/main" >&2
+  else
+    echo "pre-push: could not fetch origin and origin/main does not exist locally" >&2
+  fi
+fi
+printf '%s\n' "$refs" | pnpm exec arch-lint arch --journal $base_flag
 pnpm exec arch-lint check
 pnpm test
 pnpm build
