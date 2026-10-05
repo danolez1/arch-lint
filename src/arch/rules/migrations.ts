@@ -358,6 +358,8 @@ export interface PushCheckDeps {
   /** What git's pre-push hook wrote to stdin, or null when stdin is a terminal. */
   pushedRefs(): string | null;
   stderr(text: string): void;
+  /** The hook found a reachable remote with no release ref, so there is no released history yet. */
+  baseAbsent?: boolean;
 }
 
 function contextFor(
@@ -397,14 +399,19 @@ export function checkPushedJournals(
   const { releaseRef, baseRef, journal } = config.migrations;
 
   const shas = releasePushShas(deps.pushedRefs(), releaseRef);
-  if (
-    shas.length === 0 &&
-    !(releasedOn && option(releasedCtx, "requireBaseAlways", false))
-  )
-    return 0;
+  const required =
+    releasedOn && option(releasedCtx, "requireBaseAlways", false);
+  if (shas.length === 0 && !required) return 0;
 
+  // With no release ref on the remote there is no released history, so only the order check applies.
+  if (required && deps.baseAbsent) {
+    deps.stderr(
+      `The remote has no ${releaseRef} yet, so ${baseRef} cannot be read, and ${RELEASED_IMMUTABLE} sets requireBaseAlways; turn it off for the first push\n`
+    );
+    return 1;
+  }
   let base: JournalEntry[] | null = null;
-  if (releasedOn) {
+  if (releasedOn && !deps.baseAbsent) {
     base = deps.readJournal(baseRef);
     if (!base) {
       deps.stderr(
@@ -446,9 +453,11 @@ function readStdin(): string | null {
 
 export async function runJournalCheck(
   root: string,
-  config: ResolvedConfig
+  config: ResolvedConfig,
+  baseAbsent = false
 ): Promise<number> {
   return checkPushedJournals(root, config, {
+    baseAbsent,
     readJournal: (ref) =>
       gitJournalReader(root, ref, config.migrations.journal),
     pushedRefs: readStdin,

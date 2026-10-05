@@ -627,7 +627,8 @@ function pushRun(
   pushed: string | null,
   journals: Record<string, JournalEntry[] | null>,
   config: Config = {},
-  rules: Record<string, unknown> = {}
+  rules: Record<string, unknown> = {},
+  baseAbsent = false
 ): PushRun {
   const resolved = resolveConfig(
     mergeConfigs(config, { rules: rules as Config["rules"] })
@@ -638,6 +639,7 @@ function pushRun(
     readJournal: (ref) => (reads.push(ref), journals[ref] ?? null),
     pushedRefs: () => pushed,
     stderr: (text) => void (stderr += text),
+    baseAbsent,
   };
   return {
     code: checkPushedJournals("/virtual", resolved, deps),
@@ -751,6 +753,53 @@ test("push check: requireBaseAlways reads the base even when nothing is pushed",
     rules
   );
   assert.equal(present.code, 0);
+});
+
+test("push check: an absent base skips the released comparison but keeps the order check", () => {
+  const clean = pushRun(
+    refLine(SHA),
+    { [SHA]: [e(0, 1), e(1, 2)] },
+    {},
+    {},
+    true
+  );
+  assert.equal(clean.code, 0);
+  assert.equal(clean.stderr, "");
+  assert.deepEqual(clean.reads, [SHA]);
+
+  const unordered = pushRun(
+    refLine(SHA),
+    { [SHA]: [e(0, 2), e(1, 1)] },
+    {},
+    {},
+    true
+  );
+  assert.equal(unordered.code, 1);
+  assert.match(
+    unordered.stderr,
+    new RegExp(`${ORDER}  Journal when not strictly`)
+  );
+  assert.doesNotMatch(unordered.stderr, new RegExp(RELEASED));
+  assert.doesNotMatch(unordered.stderr, /Cannot read/);
+});
+
+test("push check: an absent base with requireBaseAlways blocks with an accurate message", () => {
+  const rules = { [RELEASED]: { options: { requireBaseAlways: true } } };
+  for (const pushed of [refLine(SHA), refLine(SHA, "refs/heads/feature")]) {
+    const r = pushRun(pushed, { [SHA]: [e(0, 1)] }, {}, rules, true);
+    assert.equal(r.code, 1);
+    assert.deepEqual(r.reads, []);
+    assert.equal(
+      r.stderr,
+      `The remote has no refs/heads/main yet, so origin/main cannot be read, and ${RELEASED} sets requireBaseAlways; turn it off for the first push\n`
+    );
+  }
+});
+
+test("push check: an absent base changes nothing for pushes that skip the release ref", () => {
+  const r = pushRun(refLine(SHA, "refs/heads/feature"), {}, {}, {}, true);
+  assert.equal(r.code, 0);
+  assert.deepEqual(r.reads, []);
 });
 
 test("push check: configured release ref, base ref and journal path", () => {

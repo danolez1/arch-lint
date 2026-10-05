@@ -1016,9 +1016,9 @@ test("pre-push with migrations fetches the base ref, then pipes the refs into th
       await arch(dir, "hooks", "install");
       const text = await readFile(path.join(dir, ".githooks/pre-push"), "utf8");
       const fetch =
-        'git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main || echo "pre-push: fetch failed, using the last fetched origin/main" >&2';
+        "if ! git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main; then";
       const journal =
-        "printf '%s\\n' \"$refs\" | npx --no-install arch-lint arch --journal";
+        "printf '%s\\n' \"$refs\" | npx --no-install arch-lint arch --journal $base_flag";
       assert.ok(text.includes(fetch), text);
       assert.ok(text.includes(journal), text);
       const order = ["refs=$(cat)", fetch, journal, "arch-lint check"].map(
@@ -1049,7 +1049,15 @@ test("pre-push builds the fetch from baseRef and releaseRef", async () => {
       const text = await readFile(path.join(dir, ".githooks/pre-push"), "utf8");
       assert.match(
         text,
-        /^git fetch --no-tags --quiet upstream \+refs\/heads\/release:refs\/remotes\/upstream\/release \|\| /m
+        /^if ! git fetch --no-tags --quiet upstream \+refs\/heads\/release:refs\/remotes\/upstream\/release; then$/m
+      );
+      assert.match(
+        text,
+        /^ {2}git ls-remote --exit-code --heads upstream refs\/heads\/release >\/dev\/null/m
+      );
+      assert.match(
+        text,
+        /rev-parse --verify --quiet refs\/remotes\/upstream\/release/
       );
     }
   );
@@ -1509,6 +1517,7 @@ test("pre-push to main falls back to the last fetched base with a note when the 
         passed.stderr,
         /pre-push: fetch failed, using the last fetched origin\/main/
       );
+      assert.doesNotMatch(passed.stderr, /has no refs\/heads\/main yet/);
       assert.equal(await remoteMain(remote), await head(dir));
 
       // The stale base still protects released entries, so the journal check really read it.
@@ -1538,31 +1547,162 @@ test("pre-push to main falls back to the last fetched base with a note when the 
   );
 });
 
-test("pre-push to main without any fetched base blocks and says to fetch first", async () => {
-  await withRepo(
+// The first push to a remote that has no main yet: the hook is installed and nothing was seeded.
+async function withFirstPush(files, fn) {
+  await withRepo({ "src/a.ts": clean, ...files }, async (dir) => {
+    await linkCli(dir);
+    const remote = await bareRemote(dir);
+    await arch(dir, "hooks", "install");
+    try {
+      await fn(dir, remote);
+    } finally {
+      await rm(remote, { recursive: true, force: true });
+    }
+  });
+}
+
+const commitAll = async (dir, ...flags) => {
+  await git(dir, "add", "-A");
+  const done = await git(dir, "commit", ...flags, "-m", "feat: first");
+  assert.equal(done.code, 0, done.stdout + done.stderr);
+};
+
+const NO_RELEASE_NOTE =
+  /pre-push: origin has no refs\/heads\/main yet, so there is no released migration history to compare with/;
+
+test("the first push of main to an empty remote passes with a valid journal and says why nothing was compared", async () => {
+  await withFirstPush(
     {
-      "src/a.ts": clean,
       [JOURNAL]: journalText(100, 200),
       "arch-lint.config.json": migrationConfig(),
     },
-    async (dir) => {
-      await linkCli(dir);
-      const remote = await bareRemote(dir);
-      await arch(dir, "hooks", "install");
-      await git(dir, "add", "-A");
-      assert.equal((await git(dir, "commit", "-m", "feat: first")).code, 0);
+    async (dir, remote) => {
+      await commitAll(dir);
+      const passed = await git(dir, "push", "origin", "HEAD:refs/heads/main");
+      assert.equal(passed.code, 0, passed.stdout + passed.stderr);
+      assert.match(passed.stderr, NO_RELEASE_NOTE);
+      assert.doesNotMatch(passed.stderr, /fetch failed/);
+      assert.doesNotMatch(passed.stderr, /Cannot read the migration journal/);
+      assert.equal(await remoteMain(remote), await head(dir));
+    }
+  );
+});
+
+test("the first push of main to an empty remote still blocks an out-of-order journal", async () => {
+  await withFirstPush(
+    {
+      [JOURNAL]: journalText(100, 200, 50),
+      "arch-lint.config.json": migrationConfig(),
+    },
+    async (dir, remote) => {
+      await commitAll(dir, "--no-verify");
+      const blocked = await git(dir, "push", "origin", "HEAD:refs/heads/main");
+      assert.notEqual(blocked.code, 0, blocked.stdout + blocked.stderr);
+      assert.match(blocked.stderr, NO_RELEASE_NOTE);
+      assert.match(
+        blocked.stderr,
+        /_journal\.json {2}migration-journal-order {2}Journal when not strictly increasing at 0002_m/
+      );
+      assert.doesNotMatch(blocked.stderr, /migration-released-immutable/);
+      assert.equal(await remoteMain(remote), "");
+    }
+  );
+});
+
+test("the first push of main with requireBaseAlways still blocks, with a message that fits an empty remote", async () => {
+  await withFirstPush(
+    {
+      [JOURNAL]: journalText(100, 200),
+      "arch-lint.config.json": config({
+        migrations: { journal: JOURNAL },
+        rules: {
+          "migration-journal-order": "error",
+          "migration-released-immutable": {
+            level: "error",
+            options: { requireBaseAlways: true },
+          },
+        },
+      }),
+    },
+    async (dir, remote) => {
+      await commitAll(dir);
+      const blocked = await git(dir, "push", "origin", "HEAD:refs/heads/main");
+      assert.notEqual(blocked.code, 0, blocked.stdout + blocked.stderr);
+      assert.match(blocked.stderr, NO_RELEASE_NOTE);
+      assert.match(
+        blocked.stderr,
+        /The remote has no refs\/heads\/main yet, so origin\/main cannot be read, and migration-released-immutable sets requireBaseAlways/
+      );
+      assert.doesNotMatch(blocked.stderr, /fetch it and push again/);
+      assert.equal(await remoteMain(remote), "");
+    }
+  );
+});
+
+test("an unreachable remote with no local base ref blocks and says it could not fetch", async () => {
+  await withFirstPush(
+    {
+      [JOURNAL]: journalText(100, 200),
+      "arch-lint.config.json": migrationConfig(),
+    },
+    async (dir, remote) => {
+      await git(
+        dir,
+        "remote",
+        "set-url",
+        "origin",
+        path.join(scratch, "no-such-remote.git")
+      );
+      await git(dir, "remote", "set-url", "--push", "origin", remote);
+      await commitAll(dir);
       const blocked = await git(dir, "push", "origin", "HEAD:refs/heads/main");
       assert.notEqual(blocked.code, 0, blocked.stdout + blocked.stderr);
       assert.match(
         blocked.stderr,
-        /pre-push: fetch failed, using the last fetched origin\/main/
+        /pre-push: could not fetch origin and origin\/main does not exist locally/
       );
       assert.match(
         blocked.stderr,
-        /Cannot read the migration journal at origin\/main/
+        /Cannot read the migration journal at origin\/main; fetch it and push again/
       );
+      assert.doesNotMatch(blocked.stderr, /using the last fetched/);
+      assert.doesNotMatch(blocked.stderr, /has no refs\/heads\/main yet/);
       assert.equal(await remoteMain(remote), "");
-      await rm(remote, { recursive: true, force: true });
+    }
+  );
+});
+
+test("the first push of a branch other than main is not held up by the missing release ref", async () => {
+  await withFirstPush(
+    {
+      [JOURNAL]: journalText(100, 200, 50),
+      // The working tree order check is off so only the push step could object, and it must not for a topic branch.
+      "arch-lint.config.json": config({
+        migrations: { journal: JOURNAL },
+        rules: {
+          "migration-journal-order": {
+            level: "error",
+            options: { workingTree: false },
+          },
+          "migration-released-immutable": "error",
+        },
+      }),
+    },
+    async (dir, remote) => {
+      await commitAll(dir);
+      const passed = await git(dir, "push", "origin", "HEAD:refs/heads/topic");
+      assert.equal(passed.code, 0, passed.stdout + passed.stderr);
+      assert.doesNotMatch(passed.stderr, /Cannot read the migration journal/);
+      assert.doesNotMatch(passed.stderr, /migration-journal-order/);
+      assert.equal(await remoteMain(remote), "");
+      const topic = await git(
+        scratch,
+        "--git-dir",
+        remote,
+        "rev-parse",
+        "refs/heads/topic"
+      );
+      assert.equal(topic.stdout.trim(), await head(dir));
     }
   );
 });

@@ -92,13 +92,31 @@ export function hookContents(root, runner) {
   ];
   if (migrationsConfigured(config)) {
     const fetch = baseFetch(config.migrations);
+    let journalFlags = "";
     if (fetch) {
+      const { remote, source, baseRef } = fetch;
+      const heads = source.startsWith("refs/heads/") ? " --heads" : "";
+      journalFlags = " $base_flag";
       pushLines.push(
         "# Offline pushes still run the other checks; the migration check then reads the last fetched copy.",
-        `git fetch --no-tags --quiet ${fetch.remote} ${fetch.refspec} || echo "pre-push: fetch failed, using the last fetched ${fetch.baseRef}" >&2`
+        "base_flag=",
+        `if ! git fetch --no-tags --quiet ${remote} ${fetch.refspec}; then`,
+        "  # Exit code 2 means the remote answered without the release ref, so nothing has been released to protect yet.",
+        `  git ls-remote --exit-code${heads} ${remote} ${source} >/dev/null 2>&1 && ls_status=0 || ls_status=$?`,
+        '  if [ "$ls_status" = 2 ]; then',
+        `    echo "pre-push: ${remote} has no ${source} yet, so there is no released migration history to compare with" >&2`,
+        "    base_flag=--base-absent",
+        `  elif git rev-parse --verify --quiet refs/remotes/${baseRef} >/dev/null; then`,
+        `    echo "pre-push: fetch failed, using the last fetched ${baseRef}" >&2`,
+        "  else",
+        `    echo "pre-push: could not fetch ${remote} and ${baseRef} does not exist locally" >&2`,
+        "  fi",
+        "fi"
       );
     }
-    pushLines.push(`printf '%s\\n' "$refs" | ${cli} arch --journal`);
+    pushLines.push(
+      `printf '%s\\n' "$refs" | ${cli} arch --journal${journalFlags}`
+    );
   }
   pushLines.push(`${cli} check`, ...projectCommands(config, "prePush"));
 

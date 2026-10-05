@@ -16,6 +16,7 @@ interface Args {
   all: boolean;
   updateBaseline: boolean;
   journal: boolean;
+  baseAbsent: boolean;
   list: boolean;
   config?: string;
   only: string[];
@@ -27,6 +28,7 @@ function parseArgs(argv: string[]): Args {
     all: false,
     updateBaseline: false,
     journal: false,
+    baseAbsent: false,
     list: false,
     only: [],
     root: process.cwd(),
@@ -42,6 +44,7 @@ function parseArgs(argv: string[]): Args {
     if (flag === "--all") args.all = true;
     else if (flag === "--update-baseline") args.updateBaseline = true;
     else if (flag === "--journal") args.journal = true;
+    else if (flag === "--base-absent") args.baseAbsent = true;
     else if (flag === "--list") args.list = true;
     else if (flag === "--config") args.config = value();
     else if (flag === "--rule")
@@ -62,7 +65,7 @@ async function main(): Promise<number> {
     return 0;
   }
   const config = resolveConfig(loadConfig(args.root, args.config));
-  if (args.journal) return runJournalCheck(args.root, config);
+  if (args.journal) return runJournalCheck(args.root, config, args.baseAbsent);
 
   const { violations, scanned } = await runRules({
     root: args.root,

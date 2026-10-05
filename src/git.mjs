@@ -107,6 +107,7 @@ export function baseFetch({
     : `refs/heads/${releaseRef}`;
   return {
     remote,
+    source,
     refspec: `+${source}:refs/remotes/${tracking}`,
     baseRef: tracking,
   };
