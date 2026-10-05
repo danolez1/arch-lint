@@ -3,9 +3,11 @@
 One install that gives a project ESLint, Prettier, architecture lint rules and headless CodeFlow analysis.
 
 ```sh
-npm i -D arch-lint        # or: bun add -d arch-lint
-npx arch-lint init        # adds scripts and arch-lint.config.json
+npm i -D @danolez/arch-lint        # or: bun add -d @danolez/arch-lint
+npx arch-lint init                 # adds scripts and arch-lint.config.json
 ```
+
+The package is published as `@danolez/arch-lint` (npm refuses the unscoped name as too similar to an existing package); the command it installs is `arch-lint`.
 
 After `init` the usual commands work:
 
@@ -72,13 +74,13 @@ Python projects (a `ruff.toml`, or a `pyproject.toml` with `[tool.ruff` or `[too
 
 ```js
 // eslint.config.mjs
-import { createConfig } from "arch-lint/eslint";
+import { createConfig } from "@danolez/arch-lint/eslint";
 export default await createConfig({ ignores: ["generated/**"], rules: {} });
 ```
 
 ```js
 // prettier.config.mjs
-export { default } from "arch-lint/prettier";
+export { default } from "@danolez/arch-lint/prettier";
 ```
 
 ## Layout

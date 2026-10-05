@@ -9,6 +9,10 @@ export const PKG_ROOT = path.resolve(
   ".."
 );
 
+export const PKG_NAME = JSON.parse(
+  readFileSync(path.join(PKG_ROOT, "package.json"), "utf8")
+).name;
+
 const require = createRequire(import.meta.url);
 
 export class UsageError extends Error {}
@@ -107,7 +111,7 @@ const OPTED_OUT = /\bbiome\s*:\s*false\b/;
 
 // A config that imports the bundled factory gets biome.json mapped inside createConfig, so the CLI reports and applies the rest like it does for the bundled config.
 export function wrapsBundledConfig(root, tool) {
-  const specifier = `arch-lint/${tool}`;
+  const specifier = `${PKG_NAME}/${tool}`;
   const mentions = (text) => text.includes(specifier) && !OPTED_OUT.test(text);
   const names = tool === "eslint" ? ESLINT_CONFIGS : PRETTIER_CONFIGS;
   return upwardsFrom(

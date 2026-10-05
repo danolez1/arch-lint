@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { readFileSync } from "node:fs";
 import {
   mkdir,
   mkdtemp,
@@ -25,6 +26,9 @@ import "./no-color.mjs";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const PKG = JSON.parse(
+  readFileSync(path.join(root, "package.json"), "utf8")
+).name;
 const cli = path.join(root, "src/bin.mjs");
 const fixtures = path.join(root, "tests/fixtures/biome");
 const organizeImports = fileURLToPath(
@@ -800,13 +804,16 @@ test("createConfig takes biome.json whenever one exists, unless biome is false",
 
 async function linkPackage(dir) {
   await mkdir(path.join(dir, "node_modules"), { recursive: true });
-  await symlink(root, path.join(dir, "node_modules/arch-lint"));
+  await mkdir(path.dirname(path.join(dir, "node_modules", PKG)), {
+    recursive: true,
+  });
+  await symlink(root, path.join(dir, "node_modules", PKG));
 }
 
 const WRAP_ESLINT = (options) =>
-  `import { createConfig } from "arch-lint/eslint";\nexport default await createConfig(${options});\n`;
+  `import { createConfig } from "${PKG}/eslint";\nexport default await createConfig(${options});\n`;
 const WRAP_PRETTIER = (options) =>
-  `import { createConfig } from "arch-lint/prettier";\nexport default createConfig(${options});\n`;
+  `import { createConfig } from "${PKG}/prettier";\nexport default createConfig(${options});\n`;
 
 test("a project ESLint config that wraps createConfig gets the Biome rules, ignores and notes", async () => {
   const biome = {
@@ -876,7 +883,7 @@ test("a project Prettier config that wraps createConfig gets the Biome options a
 test("a package.json prettier key that names the bundled config gets the Biome ignores", async () => {
   await withProject(
     {
-      "package.json": json({ name: "fx", prettier: "arch-lint/prettier" }),
+      "package.json": json({ name: "fx", prettier: `${PKG}/prettier` }),
       "biome.json": json({ files: { includes: ["**", "!**/generated"] } }),
       "src/generated/b.ts": "export const b   = 1\n",
     },

@@ -7,7 +7,7 @@ Biome and Prettier are close but not identical, so this is a translation, not a 
 ## How detection works
 
 - The file is `biome.json` or `biome.jsonc` in the project root (the directory passed with `--cwd`, or the current one). If both exist, `biome.json` wins. Comments and trailing commas are accepted in both. Parent directories are not searched.
-- With no `eslint.config.*` or Prettier config in the root or any parent, the CLI runs the bundled configs and they use the mapping. A project config that calls `createConfig` from `arch-lint/eslint` or `arch-lint/prettier` gets the mapping too, because `createConfig` reads `biome.json` by default. A project config that does not call `createConfig` is unaffected: the bundled config is never loaded for it and `biome.json` is ignored for that tool. The two tools are decided separately.
+- With no `eslint.config.*` or Prettier config in the root or any parent, the CLI runs the bundled configs and they use the mapping. A project config that calls `createConfig` from `@danolez/arch-lint/eslint` or `@danolez/arch-lint/prettier` gets the mapping too, because `createConfig` reads `biome.json` by default. A project config that does not call `createConfig` is unaffected: the bundled config is never loaded for it and `biome.json` is ignored for that tool. The two tools are decided separately.
 - A project without a `biome.json` behaves exactly as before.
 - A `biome.json` that cannot be parsed stops the command with exit code 2 and the file name in the message.
 
@@ -139,18 +139,18 @@ arch-lint: reading biome.json, not everything carries over:
 
 ## Using it from your own config
 
-A project config that calls `createConfig` from `arch-lint/eslint` or `arch-lint/prettier` gets the Biome mapping by default, the same as the bundled config does. `biome: "auto"` is the default and means use `biome.json` when the project root has one. Pass `biome: false` to leave it out.
+A project config that calls `createConfig` from `@danolez/arch-lint/eslint` or `@danolez/arch-lint/prettier` gets the Biome mapping by default, the same as the bundled config does. `biome: "auto"` is the default and means use `biome.json` when the project root has one. Pass `biome: false` to leave it out.
 
 ```js
 // eslint.config.mjs
-import { createConfig } from "arch-lint/eslint";
+import { createConfig } from "@danolez/arch-lint/eslint";
 export default await createConfig({ ignores: ["generated/**"] });
 ```
 
 ```js
 // prettier.config.mjs
-import { createConfig } from "arch-lint/prettier";
+import { createConfig } from "@danolez/arch-lint/prettier";
 export default createConfig({ biome: false });
 ```
 
-The CLI recognises such a config by the `arch-lint/eslint` or `arch-lint/prettier` specifier in the config file (or the `prettier` key in `package.json`), and prints the notes and applies the Prettier ignore patterns for it as it does for the bundled config. A config that contains `biome: false` is treated as opted out. A config that gets `createConfig` from somewhere else, such as a shared package of your own, still gets the ESLint rules, ESLint ignores and Prettier options, but the CLI cannot see the specifier, so the notes are not printed and the Prettier ignore patterns are not applied. List those paths in `.prettierignore`.
+The CLI recognises such a config by the `@danolez/arch-lint/eslint` or `@danolez/arch-lint/prettier` specifier in the config file (or the `prettier` key in `package.json`), and prints the notes and applies the Prettier ignore patterns for it as it does for the bundled config. A config that contains `biome: false` is treated as opted out. A config that gets `createConfig` from somewhere else, such as a shared package of your own, still gets the ESLint rules, ESLint ignores and Prettier options, but the CLI cannot see the specifier, so the notes are not printed and the Prettier ignore patterns are not applied. List those paths in `.prettierignore`.
