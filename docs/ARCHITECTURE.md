@@ -7,9 +7,9 @@ arch-lint has three parts that share one package: a command line that wraps ESLi
 `arch-lint arch` calls `src/arch/index.ts` with the project directory as the root. The steps:
 
 1. **Load the config** (`config.ts`). `arch-lint.config.json` is read, any `extends` are merged underneath it (`preset:<name>` loads from `src/presets/`), and the result is resolved into defaults. A project with no config file gets the `recommended` preset.
-2. **List files** (`files.ts`). The `scan` entries are walked, skipping ignored paths. Source files are the `.ts` and `.tsx` files that are not declarations or tests. Rules that need other files, such as migrations or Dart sources, ask for them through the project context.
+2. **List files** (`files.ts`). The `scan` entries are walked, skipping ignored paths. The original per-file source rules receive `.ts` and `.tsx` files that are not declarations or tests. Project rules can query additional extensions through the project context; graph and structural analysis read TypeScript and JavaScript variants, while dedicated Flutter rules read Dart files.
 3. **Run the rules** (`run.ts`). Each enabled rule runs over the files it applies to. File rules see one file at a time. Project rules see the whole tree.
-4. **Apply the baseline** (`baseline.ts`). Violations that match the tolerated counts in the baseline file are reported as debt, not as failures.
+4. **Apply the baseline** (`baseline.ts`). Matching findings are reported as debt. The default mode matches stable identities when rules provide them; `baselineMode: "worsening"` stores raw metrics for findings that provide them and reports a finding as fresh when a metric is new, its worsening direction changes, or its value moves in that direction.
 5. **Report** (`report.ts`). Violations are grouped by rule and the exit code is 1 if any are new.
 
 ## Rules
@@ -19,7 +19,7 @@ There are two kinds, both defined in `src/arch/types.ts`:
 - A **file rule** has `check(file, ctx)` and returns violations for one file. Most rules are this kind.
 - A **project rule** has `check(ctx)` and sees the whole tree through `ctx.files`, `ctx.listFiles()` and `ctx.read()`. Migration checks, file naming and rules that compare several files are this kind.
 
-Every rule has a canonical `id`, may have older `aliases` that configs and baselines can still use, and a one-line `description` that ends up in `docs/RULES.md`.
+Every rule has a canonical `id`, may have older `aliases` that configs and baselines can still use, and a one-line `description` that ends up in `docs/RULES.md`. The `code-clone` project rule in `src/arch/rules/duplication.ts` compares exact TypeScript and JavaScript statement-token runs across source locations, including one-block repeated runs. It is opt-in and skips configured test files and declarations.
 
 Rules do not know about exemptions or scope. The runner applies, in order: the rule's level (`off` skips it), its layer, any `include` patterns, and `exempt.files` and `exempt.dirs`. That keeps project specific lists out of rule code and in configuration where they belong.
 
@@ -34,6 +34,10 @@ Each rule reads its options from the config through `option(ctx, "name", fallbac
 ## The registry
 
 `src/arch/registry.ts` collects the rules from the groups under `src/arch/rules/` and fails at load time if two rules claim the same id or alias. `arch-lint arch --list` prints what it found.
+
+## Graph, call graph and MCP
+
+`src/arch/graph.ts` resolves local TypeScript and JavaScript imports, cycles, package boundaries and architecture metrics using the architecture scan, ignore and test settings. `src/arch/callgraph.ts` uses the TypeScript checker to follow function and constructor calls. It reads files listed by TypeScript and JavaScript project configs; when only nested configs exist, it also includes source files outside those configs. With a root config, it follows that config's file list. It has fixed directory exclusions and does not use the architecture scan, ignore or test patterns. `src/arch/mcp.ts` exposes scans, architecture data, file and change analysis, and call graphs over MCP stdio.
 
 ## CodeFlow
 

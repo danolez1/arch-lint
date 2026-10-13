@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Install arch-lint and run your first lint, format, and architecture checks."
+    />
+    <title>Getting started | arch-lint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html" aria-label="arch-lint home">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="index.html" aria-current="page">Get started</a>
+        <a href="../detectors/index.html">Detectors</a>
+        <a href="../configuration/index.html">Configuration</a>
+        <a href="../cli/index.html">CLI</a>
+        <a href="../integrations/index.html">Integrations</a>
+        <a class="nav-github" href="https://github.com/danolez1/arch-lint"
+          >GitHub</a
+        >
+      </nav>
+    </header>
+    <main class="docs-layout" id="main">
+      <aside class="docs-sidebar" aria-label="Documentation sections">
+        <p>Documentation</p>
+        <nav>
+          <a href="index.html" aria-current="page">Getting started</a>
+          <a href="../detectors/index.html">Architecture detectors</a>
+          <a href="../configuration/index.html">Configuration</a>
+          <a href="../cli/index.html">CLI reference</a>
+          <a href="../integrations/index.html">Integrations</a>
+        </nav>
+      </aside>
+      <article class="docs-main">
+        <p class="docs-breadcrumb"><a href="../index.html">Home</a> / Docs</p>
+        <p class="docs-kicker">Start here</p>
+        <h1>Run your first checks.</h1>
+        <p class="docs-lede">
+          arch-lint puts ESLint, Prettier, architecture rules, and headless
+          CodeFlow analysis behind one install. Start with the checks your
+          project already understands, then add architecture rules where they
+          help.
+        </p>
+
+        <h2 id="install">Install</h2>
+        <p>
+          Use Node.js 20.9 or newer with npm, pnpm, or Bun. pnpm 11 projects may
+          need the <code>allowBuilds</code> entries in the
+          <a href="https://github.com/danolez1/arch-lint#installing-with-pnpm"
+            >README</a
+          >.
+        </p>
+        <pre><code>npm i -D @danolez/arch-lint
+npx arch-lint init</code></pre>
+        <p>
+          The initializer adds project scripts and a starter config based on
+          <code>preset:recommended</code>. Existing scripts are kept unless you
+          pass <code>--force</code>.
+        </p>
+
+        <h2 id="first-check">Run the checks</h2>
+        <pre><code>npx arch-lint check</code></pre>
+        <p>
+          The command runs lint, format, and architecture checks in sequence. A
+          failure in any stage returns a failing exit code for CI. If you want
+          to run one part by itself, use <code>arch-lint lint</code>,
+          <code>arch-lint format</code>, or <code>arch-lint arch</code>.
+        </p>
+
+        <h2 id="choose-rules">Choose the architecture rules</h2>
+        <p>
+          The starter preset keeps the first run small. Set a project-wide
+          default, then enable the rules that fit your codebase. Layers let
+          rules describe real boundaries such as services, contracts, and
+          adapters.
+        </p>
+        <pre><code>{
+  "extends": ["preset:recommended"],
+  "scan": ["src"],
+  "defaultLevel": "off",
+  "layers": {
+    "services": ["src/services/**"],
+    "contracts": ["src/contracts/**"],
+    "adapters": ["src/adapters/**"]
+  },
+  "rules": {
+    "interface-segregation": {
+      "level": "error",
+      "options": { "maxMethods": 5 }
+    },
+    "dependency-inversion": {
+      "level": "error",
+      "options": {
+        "highLevelLayers": ["services"],
+        "implementationLayers": ["adapters"]
+      }
+    }
+  }
+}</code></pre>
+        <p>
+          The example enables the interface-size check and flags service code
+          that imports concrete classes from adapter files. See the
+          <a href="../configuration/index.html">configuration guide</a> for
+          layer patterns, exemptions, and baselines.
+        </p>
+
+        <div class="docs-card-grid">
+          <a class="doc-card" href="../detectors/index.html">
+            <strong>Browse detectors</strong>
+            <span
+              >Explore graph checks, structure metrics, and TypeScript
+              rules.</span
+            >
+          </a>
+          <a class="doc-card" href="../cli/index.html">
+            <strong>See the CLI</strong>
+            <span>Find commands for local work, CI, hooks, and analysis.</span>
+          </a>
+        </div>
+        <nav class="docs-pagination" aria-label="Next page">
+          <span></span>
+          <a href="../detectors/index.html">Architecture detectors</a>
+        </nav>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="../index.html">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <p>Useful checks for the code you have, and the code you’re building.</p>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="https://github.com/danolez1/arch-lint">GitHub</a>
+        <a href="https://github.com/danolez1/arch-lint/blob/main/LICENSE"
+          >MIT license</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

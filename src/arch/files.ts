@@ -8,10 +8,40 @@ import type { ResolvedConfig, SourceFile } from "./types";
 export interface FileSystem {
   /** Every non-ignored project-relative path under the scan roots. */
   list(): string[];
+  listDirectory?(directory: string): string[];
+  listDirectories?(directory: string): string[];
   read(path: string): string | null;
 }
 
 const toPosix = (p: string) => p.split(path.sep).join("/");
+
+export const ARCHITECTURE_SOURCE_EXTENSIONS = [
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".dart",
+] as const;
+
+export function collectArchitectureSourcePaths(
+  fs: FileSystem,
+  config: ResolvedConfig
+): string[] {
+  return fs
+    .list()
+    .filter(
+      (file) =>
+        ARCHITECTURE_SOURCE_EXTENSIONS.some((extension) =>
+          file.endsWith(extension)
+        ) &&
+        !/\.d\.(?:ts|mts|cts)$/.test(file) &&
+        !matchesAny(file, config.tests)
+    );
+}
 
 function staticPrefix(pattern: string): string {
   const parts = pattern.split("/");
@@ -49,6 +79,33 @@ function walk(
   }
 }
 
+function walkDirectories(
+  root: string,
+  rel: string,
+  config: ResolvedConfig,
+  out: string[]
+): void {
+  let entries: string[];
+  try {
+    entries = readdirSync(path.join(root, rel));
+  } catch {
+    return;
+  }
+  for (const name of entries) {
+    const child = rel ? `${rel}/${name}` : name;
+    let isDir: boolean;
+    try {
+      isDir = statSync(path.join(root, child)).isDirectory();
+    } catch {
+      continue;
+    }
+    if (matchesAny(isDir ? `${child}/` : child, config.ignore)) continue;
+    if (!isDir) continue;
+    out.push(child);
+    walkDirectories(root, child, config, out);
+  }
+}
+
 export function diskFileSystem(
   root: string,
   config: ResolvedConfig
@@ -74,6 +131,37 @@ export function diskFileSystem(
       cached = [...found].sort();
       return cached;
     },
+    listDirectory(directory) {
+      const full = path.resolve(root, directory);
+      const relative = toPosix(path.relative(root, full));
+      if (
+        relative === ".." ||
+        relative.startsWith("../") ||
+        matchesAny(`${relative}/`, config.ignore)
+      )
+        return [];
+      const paths: string[] = [];
+      try {
+        if (statSync(full).isDirectory()) walk(root, relative, config, paths);
+        else paths.push(relative);
+      } catch {
+        return [];
+      }
+      return paths.sort();
+    },
+    listDirectories(directory) {
+      const full = path.resolve(root, directory);
+      const relative = toPosix(path.relative(root, full));
+      if (
+        relative === ".." ||
+        relative.startsWith("../") ||
+        matchesAny(`${relative}/`, config.ignore)
+      )
+        return [];
+      const directories: string[] = [];
+      walkDirectories(root, relative, config, directories);
+      return directories.sort();
+    },
     read(p) {
       try {
         return readFileSync(path.join(root, p), "utf8");
@@ -87,6 +175,36 @@ export function diskFileSystem(
 export function memoryFileSystem(files: Record<string, string>): FileSystem {
   return {
     list: () => Object.keys(files).sort(),
+    listDirectory: (directory) => {
+      const normalized = toPosix(path.normalize(directory))
+        .replace(/^\.\/?/, "")
+        .replace(/\/$/, "");
+      const prefix = normalized ? `${normalized}/` : "";
+      return Object.keys(files)
+        .filter((file) => !prefix || file.startsWith(prefix))
+        .sort();
+    },
+    listDirectories: (directory) => {
+      const normalized = toPosix(path.normalize(directory))
+        .replace(/^\.\/?/, "")
+        .replace(/\/$/, "");
+      const prefix = normalized ? `${normalized}/` : "";
+      const directories = new Set<string>();
+      for (const file of Object.keys(files)) {
+        if (prefix && !file.startsWith(prefix)) continue;
+        const parts = file.split("/");
+        for (let index = 1; index < parts.length; index++) {
+          const candidate = parts.slice(0, index).join("/");
+          if (
+            !prefix ||
+            candidate === normalized ||
+            candidate.startsWith(prefix)
+          )
+            directories.add(candidate);
+        }
+      }
+      return [...directories].sort();
+    },
     read: (p) => files[p] ?? null,
   };
 }

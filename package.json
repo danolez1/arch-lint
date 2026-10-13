@@ -4,7 +4,7 @@
   "description": "One install for ESLint, Prettier, architecture lint rules and CodeFlow analysis.",
   "author": "Fatunmbi Daniel",
   "license": "MIT",
-  "homepage": "https://github.com/danolez1/arch-lint#readme",
+  "homepage": "https://danolez1.github.io/arch-lint/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danolez1/arch-lint.git"
@@ -26,6 +26,7 @@
   },
   "exports": {
     "./eslint": "./src/configs/eslint.config.mjs",
+    "./eslint-plugin": "./src/eslint/plugin.mjs",
     "./prettier": "./src/configs/prettier.config.mjs",
     "./package.json": "./package.json"
   },

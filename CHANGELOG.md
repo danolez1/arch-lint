@@ -4,6 +4,18 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+
+- Dependency and call graphs, architecture metrics, Mermaid output, and architecture decision record checks.
+- Structural checks for complexity, cohesion, feature envy, dependency direction, and symbol usage.
+- Opt-in `dead-symbols` and `code-clone` rules for unreferenced private values and repeated statement runs.
+- Framework presets, watch mode, an MCP server, and an ESLint plugin for architecture checks.
+- A multi-page documentation site and GitHub Pages deployment workflow.
+
+### Changed
+
+- Architecture reporting now supports JSON, SARIF, GitHub annotations, GitLab Code Quality, metrics, and Mermaid. Baselines support finding identities and worsening numeric metrics.
+
 ## [0.1.0] - 2026-10-05
 
 ### Added

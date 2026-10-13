@@ -1,0 +1,18 @@
+{
+  "extends": ["preset:recommended"],
+  "rules": {
+    "circular-dependency": "error",
+    "unused-export": {
+      "level": "error",
+      "options": {
+        "entryPoints": [
+          "**/*.module.ts",
+          "**/*.controller.ts",
+          "**/*.gateway.ts",
+          "**/*.resolver.ts",
+          "**/main.ts"
+        ]
+      }
+    }
+  }
+}

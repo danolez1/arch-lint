@@ -1,5 +1,10 @@
 import { appliesTo, inLayer, levelFor, settingsFor } from "./config";
-import { collectSources, type FileSystem } from "./files";
+import {
+  collectArchitectureSourcePaths,
+  collectSources,
+  type FileSystem,
+} from "./files";
+import { architectureGraphRuleIds } from "./graph";
 import { REGISTRY } from "./registry";
 import type {
   FileRule,
@@ -90,6 +95,8 @@ export async function runRules(input: RunInput): Promise<RunResult> {
       fs
         .list()
         .filter((p) => !extensions || extensions.some((e) => p.endsWith(e))),
+    listFilesOutsideScan: (directory) =>
+      fs.listDirectory?.(directory) ?? fs.list(),
     read: (p) => fs.read(p),
   });
   for (const rule of rules.filter(
@@ -107,10 +114,32 @@ export async function runRules(input: RunInput): Promise<RunResult> {
     }
   }
 
-  violations.sort((a, b) =>
+  const graphFindingKeys = new Set<string>();
+  const uniqueViolations = violations.filter((violation) => {
+    if (
+      !architectureGraphRuleIds.includes(
+        violation.rule as (typeof architectureGraphRuleIds)[number]
+      )
+    )
+      return true;
+    const key = [
+      violation.rule,
+      violation.file,
+      violation.line,
+      violation.identity ?? "",
+      violation.message,
+    ].join("\0");
+    if (graphFindingKeys.has(key)) return false;
+    graphFindingKeys.add(key);
+    return true;
+  });
+  uniqueViolations.sort((a, b) =>
     `${a.file}:${String(a.line).padStart(6, "0")}:${a.rule}`.localeCompare(
       `${b.file}:${String(b.line).padStart(6, "0")}:${b.rule}`
     )
   );
-  return { violations, scanned: files.length };
+  return {
+    violations: uniqueViolations,
+    scanned: collectArchitectureSourcePaths(fs, config).length,
+  };
 }

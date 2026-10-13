@@ -3,6 +3,14 @@ export interface Violation {
   line: number;
   rule: string;
   message: string;
+  identity?: string;
+  baselineIdentity?: string;
+  metrics?: Record<string, ViolationMetric>;
+}
+
+export interface ViolationMetric {
+  value: number;
+  worsening: "higher" | "lower";
 }
 
 export interface SourceFile {
@@ -28,6 +36,7 @@ export interface ImportRef {
 }
 
 export type Level = "error" | "off";
+export type BaselineMode = "identity" | "worsening";
 
 export interface RuleSettings {
   level?: Level;
@@ -51,11 +60,18 @@ export interface Config {
   tests?: string[];
   /** Named groups of path patterns that rules can be limited to (backend, routes, models, components, ...). */
   layers?: Record<string, string[]>;
+  allowedDependencies?: Record<string, string[]>;
+  contexts?: Array<{ name: string; layers: string[]; public: string[] }>;
+  teams?: Record<string, string[]>;
+  abstractLayers?: string[];
+  graph?: { coChange?: boolean; coChangeThreshold?: number };
+  adrDir?: string;
   /** Level for rules the config does not list. "off" runs only the listed rules. Default: each rule's own default. */
   defaultLevel?: Level;
   rules?: Record<string, Level | RuleSettings>;
-  /** Violation counts allowed per rule and file. Default: arch-lint.baseline.json. */
+  /** Keeps existing findings from blocking adoption of new rules. */
   baseline?: string;
+  baselineMode?: BaselineMode;
   migrations?: {
     dir?: string;
     journal?: string;
@@ -69,9 +85,16 @@ export interface ResolvedConfig {
   ignore: string[];
   tests: string[];
   layers: Record<string, string[]>;
+  allowedDependencies: Record<string, string[]>;
+  contexts: Array<{ name: string; layers: string[]; public: string[] }>;
+  teams: Record<string, string[]>;
+  abstractLayers: string[];
+  graph: { coChange: boolean; coChangeThreshold: number };
+  adrDir: string;
   defaultLevel?: Level;
   rules: Record<string, RuleSettings>;
   baseline: string;
+  baselineMode: BaselineMode;
   migrations: {
     dir: string;
     journal: string;
@@ -109,6 +132,7 @@ export interface ProjectContext extends RuleContext {
   layer?: string;
   /** Every non-ignored file path under the scan roots, not just source files. */
   listFiles(extensions?: string[]): string[];
+  listFilesOutsideScan?(directory: string): string[];
   read(path: string): string | null;
 }
 
@@ -125,7 +149,15 @@ export interface ProjectRule {
 
 export type Rule = FileRule | ProjectRule;
 
-export type Baseline = Record<string, number>;
+export interface FindingBaseline {
+  version: 2 | 3 | 4 | 5;
+  mode?: BaselineMode;
+  findings: string[];
+  legacy: Record<string, number>;
+  metrics?: Record<string, Record<string, ViolationMetric>>;
+}
+
+export type Baseline = FindingBaseline | Record<string, number>;
 
 export interface Comparison {
   fresh: Violation[];

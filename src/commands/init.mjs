@@ -10,6 +10,7 @@ const SCRIPTS = {
   format: "arch-lint format",
   "format:write": "arch-lint format:write",
   "arch-lint": "arch-lint arch",
+  "arch-lint:graph": "arch-lint arch --graph",
   check: "arch-lint check",
   codeflow: "arch-lint codeflow analyze",
 };

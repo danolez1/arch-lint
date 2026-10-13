@@ -8,6 +8,7 @@ import { format } from "./commands/format.mjs";
 import { hooks } from "./commands/hooks.mjs";
 import { init } from "./commands/init.mjs";
 import { lint } from "./commands/lint.mjs";
+import { mcp } from "./commands/mcp.mjs";
 import { PYTHON_FLAGS } from "./commands/python.mjs";
 import { staged } from "./commands/staged.mjs";
 import {
@@ -26,9 +27,10 @@ Commands:
   format [paths]                Prettier check, ruff format --check
   format:write [paths]          Prettier write, ruff format
   fix                           lint --fix, then format:write
-  arch [--list|--all|--rule id]  Architecture rules (config: arch-lint.config.json)
-  check [--skip-arch]           lint + format + arch, one exit code for CI
+  arch [--list|--all|--graph|--watch|--format text|json|sarif|github|gitlab|metrics|mermaid]  Architecture rules (config: arch-lint.config.json)
+  check [--skip-arch|--graph]   lint + format + architecture rules, one exit code for CI
   codeflow [analyze|verify|audit|test]  Headless CodeFlow: analysis, report, hotspots, finding checks
+  mcp                           Start the Model Context Protocol server over stdio
   staged [--fix] [--no-arch] [--allow-partial]  Check the staged files with lint and format, then the architecture rules
   commit-msg <file>             Check a commit message (conventional commits), for the commit-msg hook
   hooks install|status          Write or inspect the git hooks (--husky, --dir, --force, --runner)
@@ -106,6 +108,8 @@ export async function main(argv) {
       return check(args, ctx);
     case "codeflow":
       return codeflow(args, ctx);
+    case "mcp":
+      return mcp(args, ctx);
     case "staged":
       return staged(args, ctx);
     case "commit-msg":

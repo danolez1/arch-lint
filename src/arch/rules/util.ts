@@ -21,6 +21,12 @@ export function option<T>(ctx: RuleContext, key: string, fallback: T): T {
   return value === undefined ? fallback : (value as T);
 }
 
+export function positiveInteger(value: number, name: string): number {
+  if (!Number.isInteger(value) || value < 1)
+    throw new Error(`${name} must be a positive integer`);
+  return value;
+}
+
 export function messageFor(ctx: RuleContext, fallback: string): string {
   return option<string>(ctx, "message", fallback);
 }

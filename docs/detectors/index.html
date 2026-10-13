@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore arch-lint's dependency graph, architecture metrics, and TypeScript design checks."
+    />
+    <title>Architecture detectors | arch-lint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html" aria-label="arch-lint home">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="../getting-started/index.html">Get started</a>
+        <a href="index.html" aria-current="page">Detectors</a>
+        <a href="../configuration/index.html">Configuration</a>
+        <a href="../cli/index.html">CLI</a>
+        <a href="../integrations/index.html">Integrations</a>
+        <a class="nav-github" href="https://github.com/danolez1/arch-lint"
+          >GitHub</a
+        >
+      </nav>
+    </header>
+    <main class="docs-layout" id="main">
+      <aside class="docs-sidebar" aria-label="Documentation sections">
+        <p>Documentation</p>
+        <nav>
+          <a href="../getting-started/index.html">Getting started</a>
+          <a href="index.html" aria-current="page">Architecture detectors</a>
+          <a href="../configuration/index.html">Configuration</a>
+          <a href="../cli/index.html">CLI reference</a>
+          <a href="../integrations/index.html">Integrations</a>
+        </nav>
+      </aside>
+      <article class="docs-main">
+        <p class="docs-breadcrumb">
+          <a href="../index.html">Home</a> / Detectors
+        </p>
+        <p class="docs-kicker">Architecture analysis</p>
+        <h1>Find strain in the system.</h1>
+        <p class="docs-lede">
+          The architecture engine checks source structure and project
+          dependencies. Turn on the rules that match your boundaries, then use a
+          baseline to introduce them without failing on existing findings.
+        </p>
+
+        <h2 id="dependency-graph">Dependency graph</h2>
+        <p>
+          The graph resolves local imports across TypeScript and JavaScript
+          files, including re-exports, aliases, and workspace packages. It can
+          report file and package cycles, forbidden layer dependencies,
+          cross-context imports, side-effect imports, and production imports of
+          test files.
+        </p>
+        <div class="docs-card-grid">
+          <div class="doc-card">
+            <strong>Cycles and boundaries</strong>
+            <span
+              >Find circular dependencies and imports that cross configured
+              layer or context boundaries.</span
+            >
+          </div>
+          <div class="doc-card">
+            <strong>Dependency reach</strong>
+            <span
+              >Measure fan-in and fan-out, locate hub modules, and flag widely
+              shared packages.</span
+            >
+          </div>
+        </div>
+
+        <h2 id="metrics">Architecture metrics</h2>
+        <p>
+          Graph output includes fan-in and fan-out for files. For configured
+          layers it reports afferent coupling (Ca), efferent coupling (Ce),
+          instability (I), abstractness (A), and distance from the expected
+          balance (D). When layers have team ownership, the report also shows
+          cross-team dependency ratios.
+        </p>
+        <div class="docs-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rule</th>
+                <th>What it reports</th>
+                <th>Default limit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>hub-module</td>
+                <td>A file with high fan-in and high fan-out.</td>
+                <td>10 incoming and 10 outgoing files</td>
+              </tr>
+              <tr>
+                <td>high-coupling</td>
+                <td>A file over either coupling limit.</td>
+                <td>20 incoming, 10 outgoing</td>
+              </tr>
+              <tr>
+                <td>hub-dependency</td>
+                <td>An external package used by many source files.</td>
+                <td>10 importing files</td>
+              </tr>
+              <tr>
+                <td>vendor-coupling</td>
+                <td>An external package used across architectural layers.</td>
+                <td>One layer</td>
+              </tr>
+              <tr>
+                <td>max-instability</td>
+                <td>A layer above its instability ceiling.</td>
+                <td>0.8</td>
+              </tr>
+              <tr>
+                <td>team-mismatch</td>
+                <td>
+                  A layer whose dependencies cross team ownership too often.
+                </td>
+                <td>50 percent</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="design">Design and structure</h2>
+        <p>
+          Structural project checks parse TypeScript and JavaScript. Depending
+          on the rule, they inspect interfaces, declarations, imports, and
+          references between symbols. They can flag overly large interfaces,
+          concrete dependencies from high-level layers, unstable public APIs,
+          disconnected module exports, unused exports, and types with no
+          references. The opt-in <code>dead-symbols</code> rule reports
+          unreferenced private functions, classes, and variables. The opt-in
+          <code>code-clone</code> rule compares exact TypeScript and JavaScript
+          statement tokens across source locations, including repeated runs
+          within one block. Complexity, function size, nesting, and parameter
+          checks help locate code that is getting difficult to change.
+        </p>
+        <p>
+          Some related signals come from the other tools in the package. ESLint
+          reports unused local variables, while CodeFlow reports similarity
+          groups and candidate unused functions. Those reports are separate from
+          the architecture-rule registry and have their own command and output.
+        </p>
+        <div class="docs-callout">
+          <p>
+            <code>interface-segregation</code> and
+            <code>dependency-inversion</code> are opt-in rules. The first uses
+            <code>maxMethods</code> (default 5). The second needs
+            <code>highLevelLayers</code> and <code>implementationLayers</code>
+            in its options.
+          </p>
+        </div>
+
+        <h2 id="full-catalog">Full rule catalog</h2>
+        <p>
+          The catalog lists each rule's scope, default level, layer, and
+          description. The options guide covers thresholds and rule-specific
+          settings.
+        </p>
+        <div class="docs-card-grid">
+          <a
+            class="doc-card"
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/RULES.md"
+          >
+            <strong>Rule catalog</strong>
+            <span>Open the complete rule list in the repository.</span>
+          </a>
+          <a
+            class="doc-card"
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/RULE-OPTIONS.md"
+          >
+            <strong>Rule options</strong>
+            <span>See the available thresholds and custom settings.</span>
+          </a>
+        </div>
+        <nav class="docs-pagination" aria-label="Page navigation">
+          <a href="../getting-started/index.html">Previous: Getting started</a>
+          <a href="../configuration/index.html">Next: Configuration</a>
+        </nav>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="../index.html">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <p>Useful checks for the code you have, and the code you’re building.</p>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="https://github.com/danolez1/arch-lint">GitHub</a>
+        <a href="https://github.com/danolez1/arch-lint/blob/main/LICENSE"
+          >MIT license</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Command reference for arch-lint linting, architecture analysis, CodeFlow, hooks, and MCP."
+    />
+    <title>CLI reference | arch-lint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html" aria-label="arch-lint home">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="../getting-started/index.html">Get started</a>
+        <a href="../detectors/index.html">Detectors</a>
+        <a href="../configuration/index.html">Configuration</a>
+        <a href="index.html" aria-current="page">CLI</a>
+        <a href="../integrations/index.html">Integrations</a>
+        <a class="nav-github" href="https://github.com/danolez1/arch-lint"
+          >GitHub</a
+        >
+      </nav>
+    </header>
+    <main class="docs-layout" id="main">
+      <aside class="docs-sidebar" aria-label="Documentation sections">
+        <p>Documentation</p>
+        <nav>
+          <a href="../getting-started/index.html">Getting started</a>
+          <a href="../detectors/index.html">Architecture detectors</a>
+          <a href="../configuration/index.html">Configuration</a>
+          <a href="index.html" aria-current="page">CLI reference</a>
+          <a href="../integrations/index.html">Integrations</a>
+        </nav>
+      </aside>
+      <article class="docs-main">
+        <p class="docs-breadcrumb"><a href="../index.html">Home</a> / CLI</p>
+        <p class="docs-kicker">Commands</p>
+        <h1>One CLI, everyday checks.</h1>
+        <p class="docs-lede">
+          Run the same checks locally, on staged files, or in CI. Add
+          <code>--cwd &lt;dir&gt;</code> before a command to run it against
+          another project directory.
+        </p>
+
+        <h2 id="daily">Lint and format</h2>
+        <div class="docs-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Use</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>arch-lint lint [paths]</td>
+                <td>
+                  Run ESLint, plus ruff and mypy when Python projects are
+                  configured. ESLint flags pass through.
+                </td>
+              </tr>
+              <tr>
+                <td>arch-lint format [paths]</td>
+                <td>Check formatting with Prettier and ruff.</td>
+              </tr>
+              <tr>
+                <td>arch-lint format:write [paths]</td>
+                <td>Write Prettier and ruff formatting changes.</td>
+              </tr>
+              <tr>
+                <td>arch-lint fix</td>
+                <td>Run lint fixes, then format writes.</td>
+              </tr>
+              <tr>
+                <td>arch-lint check</td>
+                <td>Run lint, format, and architecture checks in order.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <pre><code>arch-lint check
+arch-lint check --skip-arch
+arch-lint lint src/routes --max-warnings 0</code></pre>
+        <p>
+          <code>--no-python</code> skips Python tools.
+          <code>--python-only</code> runs only those tools for lint and format,
+          and leaves architecture rules out of check.
+        </p>
+
+        <h2 id="architecture">Architecture rules</h2>
+        <div class="docs-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Use</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>arch-lint arch</td>
+                <td>Run enabled architecture rules.</td>
+              </tr>
+              <tr>
+                <td>arch-lint arch --rule a,b</td>
+                <td>Run selected rule IDs or aliases.</td>
+              </tr>
+              <tr>
+                <td>arch-lint arch --list</td>
+                <td>List the registered rules.</td>
+              </tr>
+              <tr>
+                <td>arch-lint arch --update-baseline</td>
+                <td>Record current findings as tolerated debt.</td>
+              </tr>
+              <tr>
+                <td>arch-lint arch --format json</td>
+                <td>Write machine-readable findings.</td>
+              </tr>
+              <tr>
+                <td>arch-lint arch --graph --format mermaid</td>
+                <td>Write a dependency diagram.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Supported report formats include text, JSON, SARIF, GitHub Actions,
+          GitLab, metrics, and Mermaid. Use <code>arch-lint arch --help</code>
+          for the current flag list.
+        </p>
+        <p>
+          To report worsening numeric metrics as new findings, set
+          <code>baselineMode</code> to <code>worsening</code> and refresh the
+          baseline once with <code>arch-lint arch --update-baseline</code>. The
+          configuration guide explains the version 5 baseline and refresh
+          requirements.
+        </p>
+
+        <h2 id="codeflow">CodeFlow</h2>
+        <pre><code>arch-lint codeflow analyze
+arch-lint codeflow verify
+arch-lint codeflow audit</code></pre>
+        <p>
+          Analyze writes a report, blast radii, and churn hotspots under
+          <code>.codeflow/</code>. Verify checks findings against the files on
+          disk. Audit writes an account of analysis findings and their verdicts.
+        </p>
+
+        <h2 id="team-workflow">Team workflow</h2>
+        <pre><code>arch-lint staged
+arch-lint commit-msg .git/COMMIT_EDITMSG
+arch-lint hooks install
+arch-lint hooks status</code></pre>
+        <p>
+          Staged checks lint and format changed files, then run architecture
+          rules over the project. Hooks install pre-commit, pre-push, and
+          commit-message checks. Use <code>arch-lint init --ci</code> to add a
+          GitHub Actions workflow.
+        </p>
+
+        <h2 id="mcp">MCP server</h2>
+        <pre><code>arch-lint mcp</code></pre>
+        <p>
+          This starts the Model Context Protocol server over standard input and
+          output. Its tools include <code>check_violations</code>,
+          <code>analyze_change</code>, <code>get_dependencies</code>,
+          <code>get_architecture</code>, <code>analyze_file</code>, and
+          <code>get_callgraph</code>. The older <code>archlint_*</code> tool
+          names are available too. Change analysis can inspect the current git
+          worktree, including deleted and renamed source paths.
+        </p>
+        <p>
+          A scan can filter the returned findings to one file. Its total, new,
+          debt, fixed, and scanned counts remain project-wide, and the response
+          marks that scope as <code>project</code>.
+        </p>
+        <nav class="docs-pagination" aria-label="Page navigation">
+          <a href="../configuration/index.html">Previous: Configuration</a>
+          <a href="../integrations/index.html">Next: Integrations</a>
+        </nav>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="../index.html">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <p>Useful checks for the code you have, and the code you’re building.</p>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="https://github.com/danolez1/arch-lint">GitHub</a>
+        <a href="https://github.com/danolez1/arch-lint/blob/main/LICENSE"
+          >MIT license</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

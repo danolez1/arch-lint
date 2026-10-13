@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Connect arch-lint with ESLint, Prettier, Biome, Git hooks, GitHub Actions, MCP, and CodeFlow."
+    />
+    <title>Integrations | arch-lint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html" aria-label="arch-lint home">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="../getting-started/index.html">Get started</a>
+        <a href="../detectors/index.html">Detectors</a>
+        <a href="../configuration/index.html">Configuration</a>
+        <a href="../cli/index.html">CLI</a>
+        <a href="index.html" aria-current="page">Integrations</a>
+        <a class="nav-github" href="https://github.com/danolez1/arch-lint"
+          >GitHub</a
+        >
+      </nav>
+    </header>
+    <main class="docs-layout" id="main">
+      <aside class="docs-sidebar" aria-label="Documentation sections">
+        <p>Documentation</p>
+        <nav>
+          <a href="../getting-started/index.html">Getting started</a>
+          <a href="../detectors/index.html">Architecture detectors</a>
+          <a href="../configuration/index.html">Configuration</a>
+          <a href="../cli/index.html">CLI reference</a>
+          <a href="index.html" aria-current="page">Integrations</a>
+        </nav>
+      </aside>
+      <article class="docs-main">
+        <p class="docs-breadcrumb">
+          <a href="../index.html">Home</a> / Integrations
+        </p>
+        <p class="docs-kicker">Fits the project you have</p>
+        <h1>Use the tools you already run.</h1>
+        <p class="docs-lede">
+          Keep your project's lint and format configs, or use arch-lint's
+          bundled defaults. The CLI can also run architecture analysis from
+          ESLint, wire checks into Git, and expose graph information to MCP
+          clients.
+        </p>
+
+        <h2 id="eslint">ESLint</h2>
+        <p>
+          The package exports an ESLint flat-config plugin with
+          <code>architecture</code> and <code>architecture-graph</code> rules.
+          The first runs configured architecture checks; the second limits the
+          scan to graph analysis.
+        </p>
+        <pre><code>import archlint from "@danolez/arch-lint/eslint-plugin";
+
+export default [
+  {
+    plugins: { archlint },
+    rules: { "archlint/architecture": "error" },
+  },
+];</code></pre>
+        <p>
+          The package also exports <code>createConfig</code> from
+          <code>@danolez/arch-lint/eslint</code> for extending the bundled
+          configuration.
+        </p>
+
+        <h2 id="prettier">Prettier</h2>
+        <p>
+          If the project has a Prettier config in its directory or a parent,
+          arch-lint uses it. Otherwise the bundled config applies. Import the
+          bundled preset directly when you need to extend it from your own
+          config.
+        </p>
+        <pre><code>// prettier.config.mjs
+export { default } from "@danolez/arch-lint/prettier";</code></pre>
+
+        <h2 id="biome">Biome</h2>
+        <p>
+          When a <code>biome.json</code> or <code>biome.jsonc</code> is present,
+          the bundled ESLint and Prettier configs translate supported settings
+          from it. Rules, formatter options, overrides, and ignore patterns are
+          mapped where there is an equivalent. Unsupported settings are reported
+          once to stderr.
+        </p>
+        <p>
+          Read the
+          <a
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/BIOME.md"
+            >Biome mapping guide</a
+          >
+          for its supported settings and limits.
+        </p>
+
+        <h2 id="hooks">Git hooks and CI</h2>
+        <p>
+          <code>arch-lint hooks install</code> writes pre-commit, pre-push, and
+          commit-message hooks. <code>arch-lint init --ci</code> writes a GitHub
+          Actions workflow. Add project-specific commands to the
+          <code>hooks</code> section of the config when builds or audits should
+          run with the built-in checks.
+        </p>
+        <h3 id="gitlab">GitLab Code Quality report</h3>
+        <p>
+          The architecture command writes GitLab Code Quality JSON. It exits
+          nonzero when it finds new violations, so upload the report with
+          <code>when: always</code> to keep it available on failed pipelines.
+        </p>
+        <pre><code>architecture:
+  image: node:22
+  script:
+    - npm ci
+    - npx arch-lint arch --format gitlab &gt; gl-code-quality-report.json
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-code-quality-report.json</code></pre>
+        <pre><code>npx arch-lint hooks install
+npx arch-lint init --ci</code></pre>
+        <p>
+          The
+          <a
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/HOOKS.md"
+            >hook guide</a
+          >
+          describes staged checks, pre-push migration checks, and hook
+          configuration.
+        </p>
+
+        <h2 id="mcp">MCP</h2>
+        <p>
+          Run <code>arch-lint mcp</code> to start the Model Context Protocol
+          server over standard input and output. The tools include
+          <code>check_violations</code>, <code>analyze_change</code>,
+          <code>get_dependencies</code>, <code>get_architecture</code>,
+          <code>analyze_file</code>, and <code>get_callgraph</code>. The server
+          also keeps its original <code>archlint_*</code> tool names for
+          existing clients.
+        </p>
+        <p>
+          Findings include severity, the related principle, remediation
+          guidance, whether a human should review it, whether the finding is a
+          new regression, and a file and line location. Unused-export and
+          orphan-type findings ask for human review. Filtered scans keep their
+          totals scoped to the whole project.
+        </p>
+
+        <h2 id="codeflow">CodeFlow</h2>
+        <p>
+          CodeFlow analysis runs separately from ESLint and Prettier. Use
+          <code>arch-lint codeflow analyze</code> to write reports, blast radii,
+          churn hotspots, duplicate-code groups, and candidate unused functions
+          under <code>.codeflow/</code>. The unused-function scan is a
+          heuristic, so treat those candidates as leads. The verify and audit
+          commands check and record findings.
+        </p>
+
+        <h2 id="languages">Language coverage</h2>
+        <p>
+          The dependency graph and structural architecture checks parse
+          TypeScript and JavaScript variants. Python projects use ruff and mypy
+          for lint and format, but do not get Python import-boundary graph
+          checks. Dedicated Flutter rules inspect Dart. CodeFlow has a separate
+          language set. <code>--no-python</code> skips the Python tools for a
+          command.
+        </p>
+        <div class="docs-card-grid">
+          <a
+            class="doc-card"
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/LANGUAGES.md"
+          >
+            <strong>Language support</strong>
+            <span
+              >See which command reads each language and which tools it
+              uses.</span
+            >
+          </a>
+          <a
+            class="doc-card"
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/ARCHITECTURE.md"
+          >
+            <strong>How it works</strong>
+            <span
+              >Read about the rule runner, graph analysis, and CodeFlow.</span
+            >
+          </a>
+        </div>
+        <nav class="docs-pagination" aria-label="Page navigation">
+          <a href="../cli/index.html">Previous: CLI</a>
+          <a href="../index.html">Back to home</a>
+        </nav>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="../index.html">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <p>Useful checks for the code you have, and the code you’re building.</p>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="https://github.com/danolez1/arch-lint">GitHub</a>
+        <a href="https://github.com/danolez1/arch-lint/blob/main/LICENSE"
+          >MIT license</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

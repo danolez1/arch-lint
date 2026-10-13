@@ -1,0 +1,19 @@
+{
+  "extends": ["preset:recommended"],
+  "rules": {
+    "circular-dependency": "error",
+    "unused-export": {
+      "level": "error",
+      "options": {
+        "entryPoints": [
+          "**/routes/**",
+          "**/*.routes.*",
+          "**/*.router.*",
+          "**/controllers/**",
+          "**/app.*",
+          "**/server.*"
+        ]
+      }
+    }
+  }
+}

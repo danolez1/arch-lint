@@ -65,9 +65,19 @@ export function mergeConfigs(base: Config, over: Config): Config {
     ignore: [...(base.ignore ?? []), ...(over.ignore ?? [])],
     tests: over.tests ?? base.tests,
     layers: { ...base.layers, ...over.layers },
+    allowedDependencies: {
+      ...base.allowedDependencies,
+      ...over.allowedDependencies,
+    },
+    contexts: over.contexts ?? base.contexts,
+    teams: { ...base.teams, ...over.teams },
+    abstractLayers: over.abstractLayers ?? base.abstractLayers,
+    graph: { ...base.graph, ...over.graph },
+    adrDir: over.adrDir ?? base.adrDir,
     rules,
     defaultLevel: over.defaultLevel ?? base.defaultLevel,
     baseline: over.baseline ?? base.baseline,
+    baselineMode: over.baselineMode ?? base.baselineMode,
     migrations: { ...base.migrations, ...over.migrations },
   };
 }
@@ -86,41 +96,76 @@ function resolveExtends(ref: string, from: string): string {
   return path.resolve(path.dirname(from), ref);
 }
 
-function load(file: string, seen: Set<string>): Config {
+function load(file: string, seen: Set<string>, files: Set<string>): Config {
   if (seen.has(file)) throw new Error(`Circular "extends" through ${file}`);
   seen.add(file);
+  files.add(file);
   const config = readJson(file);
   let merged: Config = {};
   for (const ref of config.extends ?? []) {
-    merged = mergeConfigs(merged, load(resolveExtends(ref, file), seen));
+    merged = mergeConfigs(merged, load(resolveExtends(ref, file), seen, files));
   }
   seen.delete(file);
   return mergeConfigs(merged, config);
 }
 
-/** A project without a config file gets the recommended preset. */
-export function loadConfig(root: string, explicit?: string): Config {
+export interface LoadedConfig {
+  config: Config;
+  files: string[];
+}
+
+function loadConfigWithFiles(root: string, explicit?: string): LoadedConfig {
   const file = explicit
     ? path.resolve(root, explicit)
     : path.join(root, CONFIG_FILE);
   if (explicit && !existsSync(file))
     throw new Error(`Config file not found: ${file}`);
-  if (existsSync(file)) return load(file, new Set());
-  return load(resolveExtends("preset:recommended", file), new Set());
+  const files = new Set<string>();
+  const config = existsSync(file)
+    ? load(file, new Set(), files)
+    : load(resolveExtends("preset:recommended", file), new Set(), files);
+  return { config, files: [...files].sort() };
+}
+
+export function loadConfig(root: string, explicit?: string): Config {
+  return loadConfigWithFiles(root, explicit).config;
+}
+
+export function loadConfigSources(
+  root: string,
+  explicit?: string
+): LoadedConfig {
+  return loadConfigWithFiles(root, explicit);
 }
 
 export function resolveConfig(config: Config): ResolvedConfig {
   const rules: Record<string, RuleSettings> = {};
   for (const [id, value] of Object.entries(config.rules ?? {}))
     rules[id] = toSettings(value);
+  if (
+    config.baselineMode !== undefined &&
+    config.baselineMode !== "identity" &&
+    config.baselineMode !== "worsening"
+  )
+    throw new Error('baselineMode must be "identity" or "worsening"');
   return {
     scan: config.scan ?? ["."],
     ignore: [...ALWAYS_IGNORED, ...(config.ignore ?? [])],
     tests: config.tests ?? DEFAULT_TESTS,
     layers: config.layers ?? {},
+    allowedDependencies: config.allowedDependencies ?? {},
+    contexts: config.contexts ?? [],
+    teams: config.teams ?? {},
+    abstractLayers: config.abstractLayers ?? [],
+    graph: {
+      coChange: config.graph?.coChange ?? false,
+      coChangeThreshold: config.graph?.coChangeThreshold ?? 3,
+    },
+    adrDir: config.adrDir ?? "docs/adr",
     defaultLevel: config.defaultLevel,
     rules,
     baseline: config.baseline ?? "arch-lint.baseline.json",
+    baselineMode: config.baselineMode ?? "identity",
     migrations: {
       dir: config.migrations?.dir ?? "drizzle",
       journal: config.migrations?.journal ?? "drizzle/meta/_journal.json",

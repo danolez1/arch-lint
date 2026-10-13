@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -248,6 +248,16 @@ test("arch lists the registered rules", async () => {
   });
 });
 
+test("arch --help lists the supported command options", async () => {
+  await withProject({}, async (dir) => {
+    const result = await arch(dir, "arch", "--help");
+    assert.equal(result.code, 0, result.stderr + result.stdout);
+    assert.match(result.stdout, /Usage: arch-lint arch \[options\]/);
+    assert.match(result.stdout, /--format <format>/);
+    assert.match(result.stdout, /--watch/);
+  });
+});
+
 test("arch reports a violation from the project's config and exits 1", async () => {
   await withProject(
     {
@@ -301,6 +311,40 @@ test("arch baseline records debt and then only fails on new violations", async (
       assert.equal((await arch(dir, "arch", "--rule", "no-any")).code, 0);
       await writeFile(path.join(dir, "src/b.ts"), "export const b: any = 2;\n");
       assert.equal((await arch(dir, "arch", "--rule", "no-any")).code, 1);
+    }
+  );
+});
+
+test("worsening baseline reports higher graph metrics as a new finding", async () => {
+  await withProject(
+    {
+      "arch-lint.config.json": packageJson({
+        scan: ["src"],
+        defaultLevel: "off",
+        baselineMode: "worsening",
+        rules: {
+          "high-coupling": {
+            level: "error",
+            options: { maxFanIn: 1, maxFanOut: 10 },
+          },
+        },
+      }),
+      "src/one.ts": 'import "./hub";\n',
+      "src/two.ts": 'import "./hub";\n',
+      "src/hub.ts": "export {};\n",
+    },
+    async (dir) => {
+      assert.equal((await arch(dir, "arch", "--update-baseline")).code, 0);
+      const baseline = JSON.parse(
+        await readFile(path.join(dir, "arch-lint.baseline.json"), "utf8")
+      );
+      assert.equal(baseline.version, 5);
+      assert.equal(baseline.mode, "worsening");
+      assert.equal((await arch(dir, "arch")).code, 0);
+      await writeFile(path.join(dir, "src/three.ts"), 'import "./hub";\n');
+      const changed = await arch(dir, "arch");
+      assert.equal(changed.code, 1, changed.stderr + changed.stdout);
+      assert.match(changed.stdout, /fan-in 3/);
     }
   );
 });
@@ -362,6 +406,183 @@ test("arch without --rule runs every enabled rule", async () => {
   );
 });
 
+test("arch --graph preserves an explicit graph rule selection", async () => {
+  await withProject(
+    {
+      "arch-lint.config.json": JSON.stringify({
+        scan: ["src"],
+        defaultLevel: "off",
+        layers: { x: ["src/x/"], y: ["src/y/"] },
+        allowedDependencies: { x: [], y: ["x"] },
+      }),
+      "src/x/a.ts": 'import "../y/b";\n',
+      "src/y/b.ts": 'import "../x/a";\n',
+    },
+    async (dir) => {
+      const result = await arch(
+        dir,
+        "arch",
+        "--graph",
+        "--rule",
+        "circular-dependency",
+        "--format",
+        "json"
+      );
+      assert.equal(result.code, 1, result.stderr + result.stdout);
+      const report = JSON.parse(result.stdout);
+      assert.deepEqual(
+        [...new Set(report.findings.map(({ rule }) => rule))],
+        ["circular-dependency"]
+      );
+    }
+  );
+});
+
+test("arch --format metrics reports file and layer coupling without gating", async () => {
+  await withProject(
+    {
+      "arch-lint.config.json": JSON.stringify({
+        scan: ["src"],
+        defaultLevel: "off",
+        layers: { app: ["src/app/"], domain: ["src/domain/"] },
+      }),
+      "src/app/page.ts": 'import "../domain/model";\n',
+      "src/domain/model.ts": "export {};\n",
+    },
+    async (dir) => {
+      const result = await arch(dir, "arch", "--format", "metrics");
+      assert.equal(result.code, 0, result.stderr + result.stdout);
+      const report = JSON.parse(result.stdout);
+      assert.equal(report.files[0].fanOut, 1);
+      assert.equal(report.layers[0].layer, "app");
+      assert.equal(report.layers[1].Ca, 1);
+      assert.equal(report.layers[1].I, 0);
+    }
+  );
+});
+
+test("arch --format metrics includes layers declared in ADR files", async () => {
+  await withProject(
+    {
+      "arch-lint.config.json": JSON.stringify({
+        scan: ["src"],
+        adrDir: "docs/adr",
+        defaultLevel: "off",
+      }),
+      "docs/adr/001-layers.md": [
+        "```archlint",
+        "layer app = src/app/",
+        "layer db = src/db/",
+        "```",
+      ].join("\n"),
+      "src/app/page.ts": 'import "../db/query";\n',
+      "src/db/query.ts": "export {};\n",
+    },
+    async (dir) => {
+      const result = await arch(dir, "arch", "--format", "metrics");
+      assert.equal(result.code, 0, result.stderr + result.stdout);
+      const metrics = JSON.parse(result.stdout);
+      assert.deepEqual(
+        metrics.layers.map(({ layer }) => layer),
+        ["app", "db"]
+      );
+      assert.equal(metrics.layers[0].Ce, 1);
+      assert.equal(metrics.layers[1].Ca, 1);
+    }
+  );
+});
+
+test("arch --watch reloads rule configuration after it changes", async () => {
+  const dir = await project({
+    "arch-lint.config.json": JSON.stringify({
+      scan: ["src"],
+      defaultLevel: "off",
+      adrDir: "docs/adr",
+      rules: { "test-file-leakage": "error" },
+      extends: ["./shared/base.json"],
+    }),
+    "shared/base.json": JSON.stringify({
+      rules: { "no-any": "error", "no-console": "off" },
+    }),
+    "src/a.ts": 'console.log("value");\nexport const a: any = 1;\n',
+    "src/app.ts": 'import { helper } from "../tests/helper.test";\nhelper();\n',
+    "src/service/a.ts": 'import "../db/query";\n',
+    "src/db/query.ts": "export {};\n",
+    "docs/adr/001-boundaries.md": "# Boundaries\n```archlint\n```\n",
+    "tests/placeholder.md": "test fixtures\n",
+  });
+  const child = spawn(
+    process.execPath,
+    [cli, "--cwd", dir, "arch", "--watch"],
+    {
+      stdio: ["ignore", "pipe", "pipe"],
+    }
+  );
+  const childExit = new Promise((resolve) => child.once("exit", resolve));
+  const outputClosed = new Promise((resolve) =>
+    child.stdout.once("end", resolve)
+  );
+  let output = "";
+  child.stdout.setEncoding("utf8").on("data", (chunk) => {
+    output += chunk;
+  });
+  child.stderr.setEncoding("utf8").on("data", (chunk) => {
+    output += chunk;
+  });
+  const waitForText = async (text, occurrence = 1) => {
+    const deadline = Date.now() + 10_000;
+    while (output.split(text).length - 1 < occurrence) {
+      if (child.exitCode !== null)
+        throw new Error(`watch process exited before ${text}:\n${output}`);
+      if (Date.now() >= deadline)
+        throw new Error(`watch output did not include ${text}:\n${output}`);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  };
+  try {
+    await waitForText("no-any");
+    await writeFile(
+      path.join(dir, "shared/base.json"),
+      JSON.stringify({
+        rules: { "no-any": "off", "no-console": "error" },
+      })
+    );
+    await waitForText("Architecture inputs changed.");
+    await writeFile(
+      path.join(dir, "shared/base.json"),
+      JSON.stringify({
+        rules: { "no-any": "error", "no-console": "off" },
+      })
+    );
+    await waitForText("no-console");
+    await waitForText("Architecture inputs changed.", 2);
+    await waitForText("no-any", 2);
+    await writeFile(
+      path.join(dir, "docs/adr/001-boundaries.md"),
+      [
+        "# Boundaries",
+        "```archlint",
+        "layer service = src/service/",
+        "layer db = src/db/",
+        "deny service -> db",
+        "```",
+      ].join("\n")
+    );
+    await waitForText("denied by docs/adr/001-boundaries.md");
+    await writeFile(
+      path.join(dir, "tests/helper.test.ts"),
+      "export function helper() {}\n"
+    );
+    await waitForText("src/app.ts imports test-only file tests/helper.test.ts");
+  } finally {
+    if (child.exitCode === null) {
+      child.kill("SIGINT");
+      await Promise.all([childExit, outputClosed]);
+    }
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("init then check passes on a clean project", async () => {
   await withProject({ "src/a.ts": "export const a = 2;\n" }, async (dir) => {
     assert.equal((await arch(dir, "init")).code, 0);
@@ -411,7 +632,18 @@ test("arch reports the older rule id a config uses and baselines match either id
       const baseline = JSON.parse(
         await readFile(path.join(dir, "arch-lint.baseline.json"), "utf8")
       );
-      assert.deepEqual(Object.keys(baseline), ["no-console::src/a.ts"]);
+      assert.equal(baseline.version, 5);
+      assert.equal(baseline.mode, "identity");
+      assert.equal(baseline.findings.length, 1);
+      assert.deepEqual(baseline.legacy, {});
+      await writeFile(
+        path.join(dir, "arch-lint.config.json"),
+        JSON.stringify({
+          scan: ["src"],
+          defaultLevel: "off",
+          rules: { "no-console": "error" },
+        })
+      );
       assert.equal((await arch(dir, "arch")).code, 0);
     }
   );

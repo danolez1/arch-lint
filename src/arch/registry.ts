@@ -1,10 +1,13 @@
+import { architectureGraphRule, architectureGraphRules } from "./graph";
 import { RULES as clinicalLogging } from "./rules/clinical-logging";
 import { RULES as dataLayer } from "./rules/data-layer";
+import { RULES as duplication } from "./rules/duplication";
 import { RULES as errorsAndTypes } from "./rules/errors-and-types";
 import { RULES as flutter } from "./rules/flutter";
 import { RULES as hygiene } from "./rules/hygiene";
 import { RULES as migrations } from "./rules/migrations";
 import { RULES as platform } from "./rules/platform";
+import { RULES as structural } from "./rules/structural";
 import { RULES as ui } from "./rules/ui";
 import type { Rule } from "./types";
 
@@ -15,8 +18,12 @@ export const REGISTRY: Rule[] = [
   ...dataLayer,
   ...migrations,
   ...hygiene,
+  ...structural,
+  ...duplication,
   ...clinicalLogging,
   ...flutter,
+  architectureGraphRule,
+  ...architectureGraphRules,
 ];
 
 const byAlias = new Map<string, string>();

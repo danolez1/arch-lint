@@ -1,6 +1,6 @@
 # Languages
 
-What each command does depends on the language. JavaScript and Python are handled by their own tools, the architecture rules read TypeScript and Dart, and CodeFlow has its own list of languages.
+What each command does depends on the language. JavaScript and Python are handled by their lint and format tools. The dependency graph and structural architecture checks parse TypeScript and JavaScript variants, dedicated Flutter checks read Dart, and CodeFlow has a separate list of languages.
 
 | Language                    | Tools                   | `lint`                                             | `format`                | `format:write`     | `fix`                                      |
 | --------------------------- | ----------------------- | -------------------------------------------------- | ----------------------- | ------------------ | ------------------------------------------ |
@@ -9,7 +9,7 @@ What each command does depends on the language. JavaScript and Python are handle
 | Python                      | ruff, mypy              | `ruff check .`, then `mypy .` where mypy is set up | `ruff format --check .` | `ruff format .`    | `ruff check --fix .`, then `ruff format .` |
 | Dart                        | architecture rules only | nothing                                            | nothing                 | nothing            | nothing                                    |
 
-`check` runs `lint` and `format` for the languages above that have tools, then the architecture rules (`arch`). Dart files are only read by the `arch` rules for the mobile projects.
+`check` runs `lint` and `format` for the languages above that have tools, then the architecture rules (`arch`). Python does not currently get architecture import-graph checks, and the graph engine does not parse Go. Dart files are read by dedicated Flutter architecture rules.
 
 CodeFlow (`arch-lint codeflow`) is separate. It has its own set of analyzer languages, wider than this table, and it never runs ESLint, Prettier, ruff or mypy.
 

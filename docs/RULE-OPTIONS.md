@@ -339,6 +339,124 @@ The rules that use these options most directly:
 
 The other group rules (`dynamic-module-source-forbidden`, `logger-callback-forbidden`, `phi-safe-mobile-logger-required`, `static-log-message`, `static-logger-service`) have no option of their own beyond the identification options above and `message`.
 
+## Architecture analysis
+
+### cyclomatic-complexity
+
+- `max` (default `10`): maximum allowed branch score for a function.
+
+### cognitive-complexity
+
+- `max` (default `15`): maximum allowed nesting-weighted control-flow score.
+
+### long-parameter-list
+
+- `max` (default `5`): maximum number of function parameters.
+
+### deep-nesting
+
+- `max` (default `4`): maximum control-flow nesting depth in a function.
+
+### large-function
+
+- `maxLines` (default `50`): maximum source lines in a function.
+
+### large-file
+
+- `maxLines` (default `500`): maximum source lines in a file.
+
+### god-module
+
+- `maxFunctions` (default `20`): maximum top-level functions and methods in a file.
+
+### abstractness
+
+- `minFanIn` (default `10`): minimum number of distinct importing files before a module is checked.
+- `distanceThreshold` (default `0.85`): report when the distance from the abstractness and instability balance is at least this value. Must be greater than `0` and no more than `1`.
+
+### interface-segregation
+
+- `maxMethods` (default `5`): maximum number of method signatures in a TypeScript interface.
+
+### dependency-inversion
+
+- `highLevelLayers`: layer names for code that should depend on contracts.
+- `implementationLayers`: layer names that contain concrete implementations.
+
+Set both lists to enable the rule. Each list must name configured layers. If neither option is set, the rule returns no findings.
+
+### unstable-interface
+
+- `include` (default `["**/api.*", "**/api/**", "**/public/**"]`): public API file patterns to inspect.
+- `window` (default `100`): number of recent commits to check.
+- `minChanges` (default `5`): number of commits that must change a public signature before reporting it.
+
+### hub-module
+
+- `minFanIn` (default `10`): minimum number of distinct importing files.
+- `minFanOut` (default `10`): minimum number of distinct imported files.
+
+### high-coupling
+
+- `maxFanIn` (default `20`): maximum number of distinct importing files.
+- `maxFanOut` (default `10`): maximum number of distinct imported files.
+
+### hub-dependency
+
+- `maxImporters` (default `10`): maximum number of distinct source files that may import an external package.
+
+### vendor-coupling
+
+- `maxLayers` (default `1`): maximum number of configured layers that may import the same external package.
+- `ignore` (default `[]`): external package names to leave out of the check.
+
+### max-instability
+
+- `max` (default `0.8`): maximum layer instability, from `0` through `1`.
+
+### team-mismatch
+
+- `maxRatio` (default `0.5`): maximum share of a layer's incident dependencies that cross team ownership, from `0` through `1`. Layers without owned dependencies are skipped.
+
+### primitive-obsession
+
+- `minCount` (default `3`): minimum primitive parameters in a function before reporting it.
+- `types` (default `["string", "number", "boolean", "bigint", "symbol"]`): primitive parameter types to count.
+
+### scattered-config
+
+- `minFiles` (default `3`): minimum number of files reading the same environment setting before reporting it.
+- `ignore` (default `[]`): environment variable names to leave out.
+
+### module-cohesion
+
+- `minExports` (default `5`): minimum exported declarations before checking a module.
+- `maxComponents` (default `2`): maximum number of disconnected groups among those declarations.
+
+### code-clone
+
+- `minTokens` (default `50`): minimum number of AST leaf tokens in a repeated statement run.
+- `minLines` (default `6`): minimum number of source lines spanned by the repeated statements.
+
+The rule is off by default. It compares exact token sequences in consecutive TypeScript and JavaScript statements, so formatting and comments do not affect matches. Configured test files and declaration files are skipped. A repeated run within one block reports once for the whole run.
+
+### unused-export
+
+- `entryPoints` (default `["**/index.*"]`): files matching these patterns are treated as entry points and skipped.
+
+### orphan-type
+
+- `includeExported` (default `false`): include exported type declarations in the reference check.
+
+### feature-envy
+
+- `minimumExternalAccesses` (default `4`): minimum property reads from one parameter before checking a method.
+- `minimumRatio` (default `2`): required ratio of property reads from the parameter to reads from `this`. Zero reads from `this` count as one for this comparison.
+
+### barrel-abuse
+
+- `maxReExports` (default `10`): maximum number of re-exported modules in a barrel file.
+
 ## Flutter
 
 Every Flutter rule reads these three options to decide which Dart files to look at:

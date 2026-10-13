@@ -1,0 +1,17 @@
+{
+  "extends": ["preset:recommended"],
+  "rules": {
+    "circular-dependency": "error",
+    "unused-export": {
+      "level": "error",
+      "options": {
+        "entryPoints": [
+          "**/views/**/*.{ts,tsx,js,jsx}",
+          "**/pages/**/*.{ts,tsx,js,jsx}",
+          "**/router/**",
+          "**/main.{ts,tsx,js,jsx}"
+        ]
+      }
+    }
+  }
+}

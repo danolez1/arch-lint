@@ -884,7 +884,7 @@ await db.transaction(async (tx) => {
 
 ### When to extract
 
-Extract shared code when the same logic appears in three or more places across service boundaries. Some boilerplate is fine to repeat in each service: logger setup, the startup sequence, queue configuration with service-specific settings.
+Extract shared code when the same logic appears in three or more places across service boundaries. The opt-in `code-clone` rule can catch exact repeated TypeScript and JavaScript statement runs, but it does not find semantic or near-duplicate code. Some boilerplate is fine to repeat in each service: logger setup, the startup sequence, queue configuration with service-specific settings.
 
 ### Shared package
 
@@ -1019,12 +1019,12 @@ These rely on review, the compiler or other tooling. Do not assume arch-lint wil
 - Naming conventions other than file names and test suffixes.
 - Queue and worker standards, dead letter handling, realtime design, test layout and environments, prompt templates, cost tracking and client store shape.
 - Security practice: headers, CSRF, SSRF checks, timing-safe comparison, input validation, session secrets, dependency pinning, CVE scanning and the personal data lifecycle.
-- Performance (indexes, pagination, caching), deduplication, ADRs and the compliance register.
+- Performance (indexes, pagination, caching), semantic or near-duplicate code, ADR content beyond executable layer directives, and the compliance register.
 - Staging by explicit path, and the rest of the git conventions beyond the commit header and migrations.
 
 ### The baseline
 
-A codebase that adopts the rules usually has violations on day one. `arch-lint arch --update-baseline` records them in `arch-lint.baseline.json` as tolerated counts per rule and file. A run exits with code 1 only for violations that are not in the baseline, so new code is held to the rules while old debt is paid down gradually. After fixing debt, update the baseline to lock the improvement in. Do not raise a count to get a commit through. Fix the code, or add a reasoned exemption.
+A codebase that adopts the rules usually has violations on day one. `arch-lint arch --update-baseline` records them in `arch-lint.baseline.json` as version 5 finding fingerprints, with raw metric values for findings that provide them when `baselineMode` is `worsening`. Older count-based entries are retained as legacy counts until the baseline is refreshed. A completed scan reports findings outside the baseline as new violations, so new code is held to the rules while old debt is paid down gradually. After fixing debt, update the baseline to lock the improvement in. Do not raise a count to get a commit through. Fix the code, or add a reasoned exemption.
 
 ### Hooks and CI
 
@@ -1128,7 +1128,7 @@ Keep a tech debt register that covers:
 - **Missing documentation:** ADRs, runbooks, API docs.
 - **Deferred primitives:** UI components that are needed but not built.
 - **Security patches:** CVEs in dependencies.
-- **Baselined violations:** the counts recorded in the arch-lint baseline.
+- **Baselined violations:** tolerated findings recorded in the arch-lint baseline.
 
 ### Remediation strategy
 

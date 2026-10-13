@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Configure arch-lint rules, layers, graph boundaries, teams, and baselines."
+    />
+    <title>Configuration | arch-lint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html" aria-label="arch-lint home">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="../getting-started/index.html">Get started</a>
+        <a href="../detectors/index.html">Detectors</a>
+        <a href="index.html" aria-current="page">Configuration</a>
+        <a href="../cli/index.html">CLI</a>
+        <a href="../integrations/index.html">Integrations</a>
+        <a class="nav-github" href="https://github.com/danolez1/arch-lint"
+          >GitHub</a
+        >
+      </nav>
+    </header>
+    <main class="docs-layout" id="main">
+      <aside class="docs-sidebar" aria-label="Documentation sections">
+        <p>Documentation</p>
+        <nav>
+          <a href="../getting-started/index.html">Getting started</a>
+          <a href="../detectors/index.html">Architecture detectors</a>
+          <a href="index.html" aria-current="page">Configuration</a>
+          <a href="../cli/index.html">CLI reference</a>
+          <a href="../integrations/index.html">Integrations</a>
+        </nav>
+      </aside>
+      <article class="docs-main">
+        <p class="docs-breadcrumb">
+          <a href="../index.html">Home</a> / Configuration
+        </p>
+        <p class="docs-kicker">Make the checks fit</p>
+        <h1>Describe your boundaries.</h1>
+        <p class="docs-lede">
+          Keep architecture settings in <code>arch-lint.config.json</code>. Name
+          the layers your project uses, choose which dependencies are allowed,
+          and enable rules with settings that match the codebase.
+        </p>
+
+        <h2 id="starter">A small starting config</h2>
+        <pre><code>{
+  "extends": ["preset:recommended"],
+  "scan": ["src"],
+  "defaultLevel": "off",
+  "layers": {
+    "routes": ["src/routes/**"],
+    "services": ["src/services/**"],
+    "models": ["src/models/**"],
+    "adapters": ["src/adapters/**"]
+  },
+  "allowedDependencies": {
+    "routes": ["services"],
+    "services": ["models", "adapters"],
+    "models": ["adapters"]
+  },
+  "rules": {
+    "architecture-graph": "error",
+    "code-clone": {
+      "level": "error",
+      "options": { "minTokens": 50, "minLines": 6 }
+    }
+  }
+}</code></pre>
+        <p>
+          An omitted dependency policy leaves that layer unrestricted. Once a
+          layer has an entry in <code>allowedDependencies</code>, imports into
+          every other configured layer are reported.
+        </p>
+        <p>
+          <code>code-clone</code> is opt-in. It reports exact repeated
+          TypeScript and JavaScript statement runs, including a run repeated
+          within one block. Formatting and comments do not affect a match.
+        </p>
+
+        <h2 id="presets">Framework presets</h2>
+        <p>
+          Extend a built-in preset with <code>preset:&lt;name&gt;</code>. Each
+          framework preset extends <code>recommended</code> and enables circular
+          dependency and unused export checks with common framework entry
+          points.
+        </p>
+        <pre><code>{
+  "extends": ["preset:nextjs"]
+}</code></pre>
+        <div class="docs-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Preset</th>
+                <th>Framework</th>
+                <th>Entry points</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>nestjs</td>
+                <td>NestJS</td>
+                <td>Modules, controllers, gateways, resolvers, main.ts</td>
+              </tr>
+              <tr>
+                <td>nextjs</td>
+                <td>Next.js</td>
+                <td>App Router pages, layouts, routes, templates, pages/</td>
+              </tr>
+              <tr>
+                <td>express</td>
+                <td>Express</td>
+                <td>Routes, routers, controllers, app.* and server.*</td>
+              </tr>
+              <tr>
+                <td>react</td>
+                <td>React</td>
+                <td>App.*, app/, pages/, main.*</td>
+              </tr>
+              <tr>
+                <td>vue</td>
+                <td>Vue</td>
+                <td>
+                  JavaScript and TypeScript under views/, pages/, router/,
+                  main.*
+                </td>
+              </tr>
+              <tr>
+                <td>angular</td>
+                <td>Angular</td>
+                <td>Modules, components, routes, routing modules, main.ts</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Presets set rule options; they do not add framework parsers. Vue
+          single-file components (<code>.vue</code>) are not scanned by the
+          TypeScript and JavaScript graph engine. Put architecture-relevant
+          exports in matching <code>.ts</code> or <code>.js</code> files.
+        </p>
+
+        <h2 id="levels">Rule levels and scope</h2>
+        <p>
+          Set <code>defaultLevel</code> to <code>off</code> to run only the
+          rules listed in <code>rules</code>. Each rule can use
+          <code>error</code> or <code>off</code>. A rule entry can also set its
+          layer, include patterns, exemptions, and options.
+        </p>
+        <pre><code>{
+  "rules": {
+    "no-raw-throw": {
+      "level": "error",
+      "layer": "services",
+      "exempt": {
+        "files": ["src/services/legacy.ts"],
+        "dirs": ["src/services/generated/"]
+      }
+    }
+  }
+}</code></pre>
+
+        <h2 id="graph">Graph settings</h2>
+        <p>
+          A context groups layers into a larger boundary. Its
+          <code>public</code> list marks the layers other contexts may import.
+          Team ownership is a map from team name to the layers that team owns.
+          <code>abstractLayers</code> marks layers treated as abstract in the
+          stability-distance check.
+        </p>
+        <pre><code>{
+  "contexts": [
+    {
+      "name": "billing",
+      "layers": ["billing-api", "billing-core", "billing-storage"],
+      "public": ["billing-api"]
+    }
+  ],
+  "teams": {
+    "product": ["billing-api", "billing-core"],
+    "platform": ["billing-storage"]
+  },
+  "abstractLayers": ["billing-api"],
+  "adrDir": "docs/adr",
+  "graph": {
+    "coChange": true,
+    "coChangeThreshold": 3
+  }
+}</code></pre>
+        <p>
+          <code>graph.coChange</code> enables co-change analysis.
+          <code>coChangeThreshold</code> sets the minimum number of commits that
+          changed a file pair together. Layer and team metrics appear in graph
+          output when their configuration is present.
+        </p>
+
+        <h2 id="adrs">Executable architecture decisions</h2>
+        <p>
+          Markdown files under <code>docs/adr</code> are read by default. Set
+          <code>adrDir</code> to a different directory, or to an empty string to
+          turn this input off. Fenced <code>archlint</code> blocks can add layer
+          paths and allowed or denied dependencies.
+        </p>
+        <pre><code>```archlint
+layer service = src/service/
+layer db = src/db/
+deny service -&gt; db
+```</code></pre>
+        <p>
+          ADR layer paths extend <code>layers</code>. ADR allowances extend
+          <code>allowedDependencies</code>. A deny that conflicts with an
+          allowance fails with the ADR file and line, so the decision record and
+          config cannot disagree silently.
+        </p>
+
+        <h2 id="baselines">Adopt rules with a baseline</h2>
+        <p>
+          Existing findings can be recorded so future checks focus on new
+          issues. Run <code>arch-lint arch --update-baseline</code> after
+          enabling a rule. Review the generated baseline and commit it with the
+          configuration. The normal run fails on findings beyond that record.
+        </p>
+        <h3 id="worsening-baselines">Detect worsening findings</h3>
+        <p>
+          In <code>identity</code> mode, matching uses a stable finding identity
+          when a rule provides one, so message edits alone do not create a fresh
+          finding. Findings without a stable identity use their rule, file, and
+          message as the match key. Set <code>baselineMode</code> to
+          <code>worsening</code> to store raw values for findings that expose
+          numeric metrics. A new metric, a changed worsening direction, or a
+          value moving in the configured worse direction becomes fresh. When the
+          same metric and direction remain, unchanged or improved values remain
+          debt. Message edits alone do not count as regressions in this mode.
+        </p>
+        <pre><code>{ "baselineMode": "worsening" }</code></pre>
+        <p>
+          Run <code>arch-lint arch --update-baseline</code> after changing
+          modes. It writes a version 5 baseline that records the selected mode
+          and, in <code>worsening</code> mode, current metric values. Populated
+          version 2 and 3 baselines remain usable in <code>identity</code> mode,
+          though version 3 keeps historical message-sensitive matching for
+          non-metric findings until refreshed. <code>worsening</code> mode
+          requires refreshing populated version 2 or 3 baselines. A populated
+          version 4 baseline, or a populated version 5 baseline created in the
+          other mode, also requires a refresh before scanning.
+        </p>
+
+        <h2 id="references">Reference guides</h2>
+        <div class="docs-card-grid">
+          <a
+            class="doc-card"
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/CONFIG.md"
+          >
+            <strong>All config fields</strong>
+            <span
+              >Read the complete schema notes, merge behavior, and path
+              patterns.</span
+            >
+          </a>
+          <a
+            class="doc-card"
+            href="https://github.com/danolez1/arch-lint/blob/main/docs/RULE-OPTIONS.md"
+          >
+            <strong>Rule options</strong>
+            <span>Find defaults and accepted values for each detector.</span>
+          </a>
+        </div>
+        <nav class="docs-pagination" aria-label="Page navigation">
+          <a href="../detectors/index.html">Previous: Detectors</a>
+          <a href="../cli/index.html">Next: CLI reference</a>
+        </nav>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <a class="brand footer-brand" href="../index.html">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M8 18h20M12 9l6 9-6 9M24 9l-6 9 6 9" />
+          <circle cx="8" cy="18" r="3" />
+          <circle cx="28" cy="18" r="3" />
+        </svg>
+        <span>arch<span class="brand-light">-lint</span></span>
+      </a>
+      <p>Useful checks for the code you have, and the code you’re building.</p>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="https://github.com/danolez1/arch-lint">GitHub</a>
+        <a href="https://github.com/danolez1/arch-lint/blob/main/LICENSE"
+          >MIT license</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

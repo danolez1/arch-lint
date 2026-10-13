@@ -1,0 +1,12 @@
+{
+  "extends": ["preset:recommended"],
+  "rules": {
+    "circular-dependency": "error",
+    "unused-export": {
+      "level": "error",
+      "options": {
+        "entryPoints": ["**/App.*", "**/app/**", "**/pages/**", "**/main.*"]
+      }
+    }
+  }
+}

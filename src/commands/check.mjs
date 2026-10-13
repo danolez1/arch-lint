@@ -5,6 +5,7 @@ import { pullPythonFlags } from "./python.mjs";
 
 export async function check(argv, ctx) {
   const { flags, js } = pullPythonFlags(argv);
+  const graph = argv.includes("--graph");
   // The architecture rules only read JS and TS, so a Python-only run has nothing for them.
   const skipArch = argv.includes("--skip-arch") || !js;
   // A project with no JS or TS files would otherwise fail ESLint for matching nothing.
@@ -13,7 +14,7 @@ export async function check(argv, ctx) {
     ["format", () => format(flags, { ...ctx, write: false })],
   ];
   if (!skipArch) {
-    steps.push(["arch", () => arch([], ctx)]);
+    steps.push(["arch", () => arch(graph ? ["--graph"] : [], ctx)]);
   }
 
   const failed = [];

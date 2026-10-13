@@ -2,6 +2,8 @@
 
 One install that gives a project ESLint, Prettier, architecture lint rules and headless CodeFlow analysis.
 
+Read the [arch-lint docs site](https://danolez1.github.io/arch-lint/) for setup, detectors, configuration, commands, and integrations.
+
 ```sh
 npm i -D @danolez/arch-lint        # or: bun add -d @danolez/arch-lint
 npx arch-lint init                 # adds scripts and arch-lint.config.json
@@ -44,8 +46,9 @@ Checked with pnpm 11.6.0: `lint`, `format`, the architecture rules and `check` a
 | `arch-lint format:write`      | Prettier `--write`, plus `ruff format`.                                                                                                                                         |
 | `arch-lint fix`               | `lint --fix`, then `format:write`.                                                                                                                                              |
 | `arch-lint arch`              | The architecture rules. `--rule a,b`, `--all`, `--update-baseline`, `--journal`, `--list`, `--config`.                                                                          |
+| `arch-lint mcp`               | Starts the architecture MCP server over standard input and output.                                                                                                              |
 | `arch-lint check`             | `lint`, `format` and `arch` in sequence. `--skip-arch` leaves the rules out.                                                                                                    |
-| `arch-lint codeflow analyze`  | Headless CodeFlow: analysis, full report, blast radii, churn hotspots. Writes into `.codeflow/`.                                                                                |
+| `arch-lint codeflow analyze`  | Headless CodeFlow: analysis, full report, blast radii, churn hotspots, duplicate-code groups and candidate unused functions. Writes into `.codeflow/`.                          |
 | `arch-lint codeflow verify`   | Re-checks CodeFlow's dead code and structure findings against the files on disk.                                                                                                |
 | `arch-lint codeflow audit`    | Turns an analysis and its verdicts into a written audit.                                                                                                                        |
 | `arch-lint staged`            | The lint and format checks on the staged files only, then the rules. `--fix` rewrites, `--no-arch` skips rules, `--allow-partial` checks files that also have unstaged changes. |
@@ -67,7 +70,8 @@ Python projects (a `ruff.toml`, or a `pyproject.toml` with `[tool.ruff` or `[too
 - ESLint: a project `eslint.config.*` (this directory or a parent) is used as is. Otherwise the bundled config applies. It detects `next` in `package.json` and switches to `eslint-config-next`, and adds the React hooks rules when `react` is a dependency.
 - Prettier: a project config (`.prettierrc*`, `prettier.config.*`, a `prettier` key; this directory or a parent) wins. Without one the bundled config applies (double quotes, semicolons, width 80, ES5 trailing commas, organize-imports).
 - Biome: a project with a `biome.json` (or `biome.jsonc`) gets that file mapped onto the bundled configs, whether it uses them directly or wraps `createConfig` in its own config (`biome: false` opts out): formatter options become Prettier options, rule levels and overrides become ESLint rules and blocks, and ignore patterns reach both. Settings with no equivalent are printed once to stderr. See [docs/BIOME.md](docs/BIOME.md).
-- Architecture rules: `arch-lint.config.json`. See [docs/CONFIG.md](docs/CONFIG.md) for the format, [docs/RULES.md](docs/RULES.md) for the 59 rules and [docs/RULE-OPTIONS.md](docs/RULE-OPTIONS.md) for their options. [docs/CONVENTIONS.md](docs/CONVENTIONS.md) is the guide the rules enforce.
+- Architecture rules: `arch-lint.config.json`. Built-in presets include `recommended`, `nestjs`, `nextjs`, `express`, `react`, `vue` and `angular`; each framework preset extends `recommended` with circular-dependency and unused-export checks. The opt-in `code-clone` rule finds exact repeated TypeScript and JavaScript statement runs, and `dead-symbols` finds unreferenced private values. Baselines match stable finding identities when rules provide them. `baselineMode: "worsening"` stores raw numeric metrics for findings that provide them. A new metric, a changed worsening direction, or a value moving in the configured worse direction becomes a new finding. Baseline updates write version 5 and record the selected mode. See [docs/CONFIG.md](docs/CONFIG.md) for the format, [docs/RULES.md](docs/RULES.md) for the full rule list and [docs/RULE-OPTIONS.md](docs/RULE-OPTIONS.md) for their options. [docs/CONVENTIONS.md](docs/CONVENTIONS.md) is the guide the rules enforce.
+- MCP clients can run configured checks, inspect dependency and call graphs, analyze a file or change, and read rule descriptions. See the [integrations guide](https://danolez1.github.io/arch-lint/integrations/) for the available tools and finding fields.
 - To extend the bundled lint configs from your own files:
 
 ```js
@@ -87,9 +91,9 @@ export { default } from "@danolez/arch-lint/prettier";
 src/                     everything that runs
   bin.mjs cli.mjs commands/ util.mjs   the CLI
   configs/ presets/            bundled ESLint and Prettier configs, rule presets
-  arch/                        the architecture rule engine: runner, config, 59 rules
+  arch/                        architecture rules, dependency graph, call graph and MCP server
   codeflow/                    headless CodeFlow: analyzer core, headless/ (analyze, report, hotspots, verify, audit)
-docs/                    CONFIG, HOOKS, RULES, RULE-OPTIONS, CONVENTIONS, ARCHITECTURE, WRITING-RULES, LANGUAGES, BIOME
+docs/                    reference guides and the multi-page site in docs/index.html
 tests/                   CLI, rule and CodeFlow tests
 ```
 

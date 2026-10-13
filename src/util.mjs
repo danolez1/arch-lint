@@ -29,11 +29,24 @@ export function run(cmd, args, { cwd, env } = {}) {
       env: { ...process.env, ...env },
       stdio: "inherit",
     });
+    const forwardSignal = (signal) => () => child.kill(signal);
+    const forwardInterrupt = forwardSignal("SIGINT");
+    const forwardTermination = forwardSignal("SIGTERM");
+    const cleanup = () => {
+      process.off("SIGINT", forwardInterrupt);
+      process.off("SIGTERM", forwardTermination);
+    };
+    process.on("SIGINT", forwardInterrupt);
+    process.on("SIGTERM", forwardTermination);
     child.on("error", (err) => {
+      cleanup();
       process.stderr.write(`arch-lint: cannot start ${cmd}: ${err.message}\n`);
       resolve(127);
     });
-    child.on("close", (code, signal) => resolve(signal ? 1 : (code ?? 1)));
+    child.on("close", (code, signal) => {
+      cleanup();
+      resolve(signal ? 1 : (code ?? 1));
+    });
   });
 }
 
