@@ -1,6 +1,6 @@
 {
   "name": "@danolez/arch-lint",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "One install for ESLint, Prettier, architecture lint rules and CodeFlow analysis.",
   "author": "Fatunmbi Daniel",
   "license": "MIT",
